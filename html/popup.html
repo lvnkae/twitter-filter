@@ -1,0 +1,56 @@
+﻿<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Youtubeフィルタ</title>
+        <style type="text/css">
+            body {
+                width:384px;
+            }
+        </style>
+
+    </head>
+    <body>
+
+        <div class="main">
+          
+            <input name="sw_filter" type="checkbox">フィルタを有効にする</input><br>
+
+            <select name="select_filter">
+                <option value="dispname_mute">表示名ミュート</option>
+                <option value="username_mute">ユーザ名ミュート</option>
+                <option value="userid_mute"> ユーザIDミュート</option>
+                <option value="word_mute">ワードミュート</option>
+                <option value="post_rt_setting">RT後ツイート設定</option>
+                <option value="option">オプション</option>
+            </select>
+            <p><textarea name="dispname_mute" class="form-control" rows="8" cols="40"></textarea></p>
+            <p><textarea name="username_mute" class="form-control" rows="8" cols="40" style="display:none"></textarea></p>
+            <p><textarea name="userid_mute" class="form-control" rows="8" cols="40" style="display:none"></textarea></p>
+            <p><textarea name="word_mute" class="form-control" rows="8" cols="40" style="display:none"></textarea></p>
+            <p><textarea name="post_rt_setting_username" class="form-control" rows="8" cols="40" style="display:none"></textarea></p>
+            <p><textarea name="post_rt_notation" class="form-control" rows="8" cols="40" style="display:none"></textarea></p>
+            <input id="perfectmatch" type="checkbox" style="display:none">
+            <label id="perfectmatch" for="perfectmatch" style="display:none">完全一致</label>
+            <input id="normalize" type="checkbox" style="display:none">
+            <label id="normalize" for="normalize" style="display:none">大/小文字区別なし</label>
+            
+            <input id="off_login" type="checkbox" style="display:none">
+            <label id="off_login" for="off_login" style="display:none">"新機能を全て～"を消す<br></label>
+            <input id="off_related" type="checkbox" style="display:none">
+            <label id="off_related" for="off_related" style="display:none">"おすすめユーザ"を消す<br></label>
+            <input id="off_trend" type="checkbox" style="display:none">
+            <label id="off_trend" for="off_trend" style="display:none">"世界中のトレンド"を消す<br></label>
+            <input id="annoying_mute" type="checkbox" style="display:none">
+            <label id="annoying_mute" for="annoying_mute" style="display:none">迷惑サイトをミュートする<br></label>
+            <button name="req_save" align="center" disabled>変更を保存する</button>
+
+          </div>
+        </div>
+        <script src="../js/jquery-3.3.1.min.js"></script>
+        <script src="../js/text_utility.js"></script>
+        <script src="../js/url_wrapper.js"></script>
+        <script src="../js/storage_data.js"></script>
+        <script src="../js/popup.js"></script>
+  </body>
+</html>
