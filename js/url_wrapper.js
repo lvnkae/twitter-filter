@@ -89,7 +89,7 @@ class urlWrapper {
 
 
     in_yahoo_realtime_search() {
-        return this.domain.indexOf("search.yahoo.co.jp") >= 0;
+        return this.domain == 'search.yahoo.co.jp';
     }
     in_yahoo_realtime_search_top() {
         return this.in_yahoo_realtime_search() &&
@@ -98,7 +98,7 @@ class urlWrapper {
     }
     in_yahoo_realtime_search_result() {
         return this.in_yahoo_realtime_search() &&
-               this.subdir.lenght > 1 &&
+               this.subdir.length > 1 &&
                this.subdir[0] == "realtime" &&
                this.subdir[1].indexOf("search") >= 0;
     }
@@ -175,6 +175,21 @@ class urlWrapper {
         } else {
             // 基本的にはhttpsで統一
             this.url = 'https://' + domsub;
+        }
+    }
+
+    /*!
+     *  @brief  URL群から短縮URLを選別する
+     *  @param[out] dst 格納先
+     *  @param[in]  src URL群(urlWrapper)
+     *  @note   選別時に正規化も行う
+     */
+    static select_short_url(dst, src) {
+        for (const loc of src) {
+            if (loc.is_short_url()) {
+                loc.normalize_short_url();
+                dst.push(loc);
+            }
         }
     }
 }

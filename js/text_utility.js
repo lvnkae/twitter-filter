@@ -3,11 +3,11 @@
  */
 class TextUtil {
 
-    new_line_code() {
+    static new_line_code() {
         return "\r\n";
     }
 
-    split_by_new_line(string) {
+    static split_by_new_line(string) {
         var result = string.split(/\r\n|\r|\n/);
         var ret = [];
         for (const word of result) {
@@ -25,11 +25,11 @@ class TextUtil {
      *  @brief  空行削除
      *  @note   空(0文字、または空白のみ)の行を削除し、残りを連結して返す
      */
-    remove_blank_line(string) {
-        const div_nl = this.split_by_new_line(string);
+    static remove_blank_line(string) {
+        const div_nl = TextUtil.split_by_new_line(string);
         var ret_string = '';
         for (const dv of div_nl) {
-            if (this.remove_line_head_space(dv) != '') {
+            if (TextUtil.remove_line_head_space(dv) != '') {
                 ret_string += dv;
             }
         }
@@ -38,13 +38,13 @@ class TextUtil {
     /*!
      *  @brief  行頭スペースを削除
      */
-    remove_line_head_space(string) {
+    static remove_line_head_space(string) {
         return string.replace(/^\s+/g, "");
     }
     /*!
      *  @brief  改行とスペースを削除
      */
-    remove_new_line_and_space(string) {
+    static remove_new_line_and_space(string) {
         return string.replace(/[\s|\r\n|\r|\n]+/g, "");
     }
 
@@ -53,10 +53,10 @@ class TextUtil {
      *  @param  pos     文字位置
      *  @param  text    改行で連結された文字列
      */
-    search_text_connected_by_new_line(pos, text) {
+    static search_text_connected_by_new_line(pos, text) {
         if (text.length > 0) {
             var t_len = 0;
-            var split_text = text_utility.split_by_new_line(text);
+            var split_text = TextUtil.split_by_new_line(text);
             for (const word of split_text) {
                 t_len += word.length + 1; // 1はsplit前改行
                 if (pos < t_len) {
@@ -77,9 +77,9 @@ class TextUtil {
      *  @param  m_multiline     mオプション(行頭/行末判定で改行を考慮する)の有無
      *  @note   keywordとdstの比較
      */
-    compound_conditional_compare(src_org, dst,
-                                 b_perfect_match,
-                                 i_ignoreCase, g_global, u_unicode, m_multiline) {
+    static compound_conditional_compare(src_org, dst,
+                                        b_perfect_match,
+                                        i_ignoreCase, g_global, u_unicode, m_multiline) {
         var b_regexp = false;
         var src = src_org;
         if (src_org.length > 2) {
@@ -90,11 +90,11 @@ class TextUtil {
         }
         if (b_regexp) {
             // 正規表現
-            return this.regexp(src, dst,
-                               i_ignoreCase,
-                               g_global,
-                               u_unicode,
-                               m_multiline);
+            return TextUtil.regexp(src, dst,
+                                   i_ignoreCase,
+                                   g_global,
+                                   u_unicode,
+                                   m_multiline);
         } else {
             if (b_perfect_match) {
                 // 完全一致
@@ -116,47 +116,25 @@ class TextUtil {
 
     /*!
      *  @brief  srcがdstに含まれているか調べる(部分一致)
-     *  @param  srcの頭2文字が<>だったら正規表現として扱う
      *  @param  i_ignoreCase    iオプション(大/小文字区別なし)の有無
      *  @param  g_global        gオプション(繰り返し)の有無
      *  @param  u_unicode       uオプション(サロゲートペアを1文字として扱う)の有無
      *  @param  m_multiline     mオプション(行頭/行末判定で改行を考慮する)の有無
+     *  @note   srcの頭2文字が<>だったら正規表現として扱う
      */
-    regexp_indexOf(src, dst, i_ignoreCase, g_global, u_unicode, m_multiline) {
+    static regexp_indexOf(src, dst, i_ignoreCase, g_global, u_unicode, m_multiline) {
         if (src.length > 2) {
             if (src.substr(0, 2) == "<>") {            
-                return this.regexp(src.slice(2), dst,
-                                   i_ignoreCase,
-                                   g_global,
-                                   u_unicode,
-                                   m_multiline);
+                return TextUtil.regexp(src.slice(2), dst,
+                                       i_ignoreCase,
+                                       g_global,
+                                       u_unicode,
+                                       m_multiline);
             }
         }
         return dst.indexOf(src) >= 0;
     }
 
-    /*!
-     *  @brief  srcがdstに含まれているか調べる(部分一致)
-     *  @param  srcの頭2文字が<>だったら正規表現として扱う
-     *  @param  i_ignoreCase    iオプション(大/小文字区別なし)の有無
-     *  @param  g_global        gオプション(繰り返し)の有無
-     *  @param  u_unicode       uオプション(サロゲートペアを1文字として扱う)の有無
-     *  @param  m_multiline     mオプション(行頭/行末判定で改行を考慮する)の有無
-     */
-    regexp_allow(src, dst, i_ignoreCase, g_global, u_unicode, m_multiline) {
-        if (src.length > 2) {
-            if (src.substr(0, 2) == "<>") {            
-                return this.regexp(src.slice(2), dst,
-                                   i_ignoreCase,
-                                   g_global,
-                                   u_unicode,
-                                   m_multiline);
-            }
-        }
-        return false;
-        return dst.indexOf(src) >= 0;
-    }
-    
     /*!
      *  @brief  srcとdstの部分一致を調べる
      *  @param  src             キー文字列(正規表現)
@@ -166,7 +144,7 @@ class TextUtil {
      *  @param  u_unicode       uオプション(サロゲートペアを1文字として扱う)の有無
      *  @param  m_multiline     mオプション(行頭/行末判定で改行を考慮する)の有無
      */
-    regexp(src, dst, i_ignoreCase, g_global, u_unicode, m_multiline) {
+    static regexp(src, dst, i_ignoreCase, g_global, u_unicode, m_multiline) {
         var flag = (i_ignoreCase) ?'i' :'';
             flag = (g_global) ?flag+'g' :flag;
             flag = (u_unicode) ?flag + 'u' :flag;
@@ -175,5 +153,3 @@ class TextUtil {
         return ret >= 0;
     }
 }
-
-var text_utility = new TextUtil();

@@ -59,7 +59,7 @@ class StorageData {
     update_text() {
         this.clear_text_buffer();
         //  フィルタを改行コードで連結してバッファに格納
-        const NLC = text_utility.new_line_code();
+        const NLC = TextUtil.new_line_code();
         for (const uim of this.json.userid_mute) {
             this.userid_mute_text += uim + NLC;
         }
@@ -126,13 +126,13 @@ class StorageData {
      */
     dispname_mute(dispname) {
         for (const dmt of this.json.dispname_mute) {
-            if (text_utility.compound_conditional_compare(dmt.dispname, 
-                                                          dispname,
-                                                          dmt.b_perfect_match,
-                                                          dmt.b_normalize,
-                                                          false,
-                                                          true,
-                                                          false)) {
+            if (TextUtil.compound_conditional_compare(dmt.dispname, 
+                                                      dispname,
+                                                      dmt.b_perfect_match,
+                                                      dmt.b_normalize,
+                                                      false,
+                                                      true,
+                                                      false)) {
                 return true;
             }
         }
@@ -146,7 +146,7 @@ class StorageData {
      */
     word_mute(tweet) {
         for (const wmt of this.json.word_mute) {
-            if (text_utility.regexp_indexOf(wmt, tweet, false, false, true, true)) {
+            if (TextUtil.regexp_indexOf(wmt, tweet, false, false, true, true)) {
                 return true;
             }
         }

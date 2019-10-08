@@ -12,11 +12,20 @@
       "name": "Twitter Filter"
    },
    "content_scripts": [ {
-      "js": [ "js/jquery-3.3.1.min.js", "js/text_utility.js", "js/url_wrapper.js", "js/fixed_filter.js", "js/storage_data.js", "js/content.js" ],
-      "matches": [ "https://twitter.com/*"],
+      "js": [ "js/jquery-3.3.1.min.js",
+              "js/text_utility.js",
+              "js/url_wrapper.js",
+              "js/fixed_filter.js",
+              "js/storage_data.js",
+              "js/short_url_decoder.js",
+              "js/twitter_filter.js",
+              "js/yahoo_realtime_search_filter.js",
+              "js/content.js" ],
+      "matches": [ "https://twitter.com/*",
+                   "https://search.yahoo.co.jp/realtime/*"],
       "run_at": "document_start"
    } ],
-   "description": "Twitter,Togetter,Yahoo!リアルタイム検索にフィルタ機能を追加するアドオン/拡張機能です。ログインせずに各種ミュートが行えます。",
+   "description": "Twitter,Togetter,Yahoo!リアルタイム検索にフィルタ機能を追加する拡張機能です。ログインせずに各種ミュートが行えます。",
    "icons": {
       "19": "img/badge_on.png",
       "48": "img/icon_48.png"

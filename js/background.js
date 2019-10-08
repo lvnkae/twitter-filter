@@ -172,15 +172,14 @@ class Background {
      *  @param  details 
      */
     get_location(details) {
-        var gbg = gBackground;
-        if (!gbg.in_monitoring_request(details)) {
+        if (!this.in_monitoring_request(details)) {
             return;
         }
         const responseHeaders = details.responseHeaders;
-        const short_url_org = gbg.get_short_url_org(details.requestId);
+        const short_url_org = this.get_short_url_org(details.requestId);
         if (short_url_org == '') {
             // [error]起点短縮URLが取得できなかった
-            const func_name = gbg.get_location.name;
+            const func_name = this.get_location.name;
             console.log(func_name
                         + '> error:fail to get short-url-org(from:'
                         + details.url
@@ -197,18 +196,18 @@ class Background {
             details.statusCode == STC_FOUND             ||
             details.statusCode == STC_INTERNAL_REDIRECT ||
             details.statusCode == STC_HTNTO_REDIRECT) {
-            const url = gbg.get_location_from_headers(details.responseHeaders);
+            const url = this.get_location_from_headers(details.responseHeaders);
             if (url == '') {
                 // [error]新種のHeader?
-                const func_name = gbg.get_location.name;
+                const func_name = this.get_location.name;
                 console.log(func_name
                             + '> error:fail to get redirect-url(from:'
                             + details.url
                             + ').');
-                gbg.remove_short_url(short_url_org);
-                gbg.send_reply({command: rep_command,
-                                result: "fail",
-                                short_url: short_url_org});
+                this.remove_short_url(short_url_org);
+                this.send_reply({command: rep_command,
+                                 result: "fail",
+                                 short_url: short_url_org});
                 return;
             }
             const loc = new urlWrapper(url);
@@ -218,36 +217,36 @@ class Background {
             }
             if (b_is_short_url || loc.is_hatena_redirection()) {
                 // 多段短縮URL
-                const stage = gbg.get_short_url_stage(short_url_org);
+                const stage = this.get_short_url_stage(short_url_org);
                 const MAX_SHORT_URL_STAGE = 4;  // 1URLにつき問い合わせは4回まで
                 if (stage >= MAX_SHORT_URL_STAGE) {
                     // [error]段数多すぎ
-                    const func_name = gbg.get_location.name;
+                    const func_name = this.get_location.name;
                     console.log(func_name
                                 + '> error:over limit of stage(orig:'
                                 + short_url_org
                                 + ',stage:'
                                 + stage
                                 + ').');
-                    gbg.tell_expand_url(short_url_org, url); // 最終URLを登録しとく
-                    gbg.send_reply({command: rep_command,
-                                    result: "over_stage",
-                                    short_url: short_url_org});
+                    this.tell_expand_url(short_url_org, url); // 最終URLを登録しとく
+                    this.send_reply({command: rep_command,
+                                     result: "over_stage",
+                                     short_url: short_url_org});
                 } else {
                     // 次展開
-                    gbg.request_expand_url(loc.url, short_url_org);
+                    this.request_expand_url(loc.url, short_url_org);
                 }
             } else {
                 // 展開成功
-                gbg.tell_expand_url(short_url_org, url);
-                gbg.send_reply({command: rep_command,
-                                result: "success",
-                                short_url: short_url_org,
-                                url: url});
+                this.tell_expand_url(short_url_org, url);
+                this.send_reply({command: rep_command,
+                                 result: "success",
+                                 short_url: short_url_org,
+                                 url: url});
             }
         } else {
             // [error]展開失敗
-            const func_name = gbg.get_location.name;
+            const func_name = this.get_location.name;
             console.log(func_name
                         + '> error:fail to receive(orig:'
                         + short_url_org
@@ -256,10 +255,10 @@ class Background {
                         + ',status:'
                         + details.statusCode
                         + ').');
-            gbg.remove_short_url(short_url_org);
-            gbg.send_reply({command: rep_command,
-                            result: "fail",
-                            short_url: short_url_org});
+            this.remove_short_url(short_url_org);
+            this.send_reply({command: rep_command,
+                             result: "fail",
+                             short_url: short_url_org});
         }
     }
 
@@ -282,21 +281,20 @@ class Background {
      *  @note   4. 短縮URLが多段だった場合1へ
      */
     get_request_id(details) {
-        var gbg = gBackground;
-        if (!gbg.in_monitoring_request(details)) {
+        if (!this.in_monitoring_request(details)) {
             return;
         }
-        const short_url_org = gbg.get_start_url_from_headers(details.requestHeaders);
+        const short_url_org = this.get_start_url_from_headers(details.requestHeaders);
         if (short_url_org == '') {
             // error:起点短縮URLが取得できなかった
-            const func_name = gbg.get_request_id.name;
+            const func_name = this.get_request_id.name;
             console.log(func_name
                         + '> error:fail to get short-url-org(to '
                         + details.url
                         + ').');
             return;
         }
-        gbg.bind_short_url_with_requestId(short_url_org, details.requestId);
+        this.bind_short_url_with_requestId(short_url_org, details.requestId);
     }
 
     /*!
@@ -351,13 +349,13 @@ class Background {
         ];
         //
         chrome.webRequest.onHeadersReceived.addListener(
-            this.get_location,
+            this.get_location.bind(this),
             {urls: pattern},
             ['responseHeaders']
         );
 
         chrome.webRequest.onBeforeSendHeaders.addListener(
-            this.get_request_id,
+            this.get_request_id.bind(this),
             {urls: pattern},
             ['requestHeaders']
         );

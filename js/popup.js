@@ -257,7 +257,7 @@ class Popup {
     textarea_dispname_mute_dblclick() {
         var t = this.textarea_dispname_mute();
         const dispname
-            = text_utility.search_text_connected_by_new_line(
+            = TextUtil.search_text_connected_by_new_line(
                 t[0].selectionStart,
                 t.val());
         if (dispname == null) {
@@ -305,7 +305,7 @@ class Popup {
     textarea_post_rt_setting_username_dblclick() {
         var t = this.textarea_post_rt_setting_username();
         const username
-            = text_utility.search_text_connected_by_new_line(
+            = TextUtil.search_text_connected_by_new_line(
                 t[0].selectionStart,
                 t.val());
         if (username == null) {
@@ -410,28 +410,28 @@ class Popup {
         }
         //
         {
-            var filter
-                = text_utility.split_by_new_line(this.textarea_userid_mute().val());
+            const filter
+                = TextUtil.split_by_new_line(this.textarea_userid_mute().val());
             for (const userid of filter) {
-                const ui = text_utility.remove_new_line_and_space(userid);
+                const ui = TextUtil.remove_new_line_and_space(userid);
                 if (ui != "") {
                     this.storage.json.userid_mute.push(ui);
                 }
             }
         }
         {
-            var filter
-                = text_utility.split_by_new_line(this.textarea_username_mute().val());
+            const filter
+                = TextUtil.split_by_new_line(this.textarea_username_mute().val());
             for (const username of filter) {
-                const un = text_utility.remove_new_line_and_space(username);
+                const un = TextUtil.remove_new_line_and_space(username);
                 if (un != "") {
                     this.storage.json.username_mute.push(un);
                 }
             }
         }
         {
-            var filter
-                = text_utility.split_by_new_line(this.textarea_dispname_mute().val());
+            const filter
+                = TextUtil.split_by_new_line(this.textarea_dispname_mute().val());
             for (const dispname of filter) {
                 if (dispname != "") {
                     var json_obj = {};
@@ -450,8 +450,7 @@ class Popup {
             }
         }
         {
-            var filter
-                = text_utility.split_by_new_line(this.textarea_word_mute().val());
+            const filter = TextUtil.split_by_new_line(this.textarea_word_mute().val());
             for (const word of filter) {
                 if (word != "") {
                     this.storage.json.word_mute.push(word);
@@ -459,8 +458,8 @@ class Popup {
             }
         }
         {
-            var filter
-                = text_utility.split_by_new_line(
+            const filter
+                = TextUtil.split_by_new_line(
                     this.textarea_post_rt_setting_username().val());
             for (const username of filter) {
                 if (username != "") {
@@ -468,7 +467,7 @@ class Popup {
                     json_obj.username = username;
                     if (username in this.post_rt_notation_buffer) {
                         json_obj.notations = 
-                            text_utility.split_by_new_line(
+                            TextUtil.split_by_new_line(
                                 this.post_rt_notation_buffer[username]);
                     } else {
                         json_obj.notations = [];
@@ -525,7 +524,7 @@ class Popup {
                                         dnm.b_normalize);
         }
         //
-        const NLC = text_utility.new_line_code();
+        const NLC = TextUtil.new_line_code();
         this.post_rt_notation_buffer = [];
         for (const prts of this.storage.json.post_rt_setting) {
             var notations = "";
