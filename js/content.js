@@ -23,9 +23,7 @@ class Filter {
     constructor() {
         this.after_domloaded_observer = null;
         this.filtering_timer = null;
-        //
-        this.twitter_filter = null;
-        this.yahoo_realtime_search_filter = null;
+        this.filter_instance = null;
         //
         this.initialize();
     }
@@ -42,10 +40,9 @@ class Filter {
     callback_domloaded() {
         const loc = gContent.current_location;
         if (loc.in_twitter()) {
-            this.twitter_filter = new TwitterFilter(this.storage);
+            this.filter_instance = new TwitterFilter(this.storage);
         } else if(loc.in_yahoo_realtime_search_result()) {
-            this.yahoo_realtime_search_filter
-                = new YahooRealtimeSearchFilter(this.storage);
+            this.filter_instance = new YahooRealtimeSearchFilter(this.storage);
         } else {
         }
         //
@@ -99,13 +96,10 @@ class Filter {
         if (!this.storage.json.active) {
             return;
         }
-        const loc = gContent.current_location;
-        if (this.twitter_filter) {
-            this.twitter_filter.filtering(loc);
-        } else if (this.yahoo_realtime_search_filter) {
-            this.yahoo_realtime_search_filter.filtering(loc);
-        } else {
+        if (!this.filter_instance) {
+            return;
         }
+        this.filter_instance.filtering(gContent.current_location);
     }
 
 
@@ -163,14 +157,12 @@ class Filter {
             (request, sender, sendResponce)=> {
                 if (request.command == "decode_short_url") {
                     if (request.result == 'success') {
-                        if (this.twitter_filter) {
+                        if (this.filter_instance) {
                             this
-                            .twitter_filter
+                            .filter_instance
                             .tell_decoded_short_url(request.short_url,
                                                     request.url,
                                                     gContent.current_location);
-                        } else
-                        if (this.yahoo_realtime_search_filter) {
                         }
                     }
                 } else

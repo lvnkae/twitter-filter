@@ -29,7 +29,6 @@ class ShortUrlDecoder {
      *  @brief  短縮URL登録
      *  @param  short_urls  短縮URL群(urlWrapper)
      *  @param  id          識別情報
-     *  @retval true    除外対象を含んでいる
      */
     entry(short_urls, id) {
         for (const loc of short_urls) {
@@ -52,7 +51,6 @@ class ShortUrlDecoder {
                 this.short_url_map[loc.url] = obj;
             }
         }
-        return false;
     }
 
     /*!

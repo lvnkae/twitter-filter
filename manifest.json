@@ -18,6 +18,7 @@
               "js/fixed_filter.js",
               "js/storage_data.js",
               "js/short_url_decoder.js",
+              "js/filter_base.js",
               "js/twitter_filter.js",
               "js/yahoo_realtime_search_filter.js",
               "js/content.js" ],

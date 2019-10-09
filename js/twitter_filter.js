@@ -19,32 +19,13 @@ class TweetInfo {
 /*!
  *  @brief  Twitterフィルタ
  */
-class TwitterFilter {
+class TwitterFilter extends FilterBase {
 
     /*!
-     *  @param storage  ストレージインスタンス(shared_ptr的なイメージ)
+     *  @param storage  ストレージインスタンス
      */
     constructor(storage) {
-        this.storage = storage;
-        this.fixed_filter = new fixedFilter();
-        this.short_url_decoder = new ShortUrlDecoder();
-    }
-
-    /*!
-     *  @brief  配列dstからsrcを取り除く
-     *  @return 除外後配列
-     */
-    exclusion(dst, src) {
-        if (src == null || dst.lenght == 0) {
-            return dst;
-        }
-        var ret = [];
-        for (const e of dst) {
-            if (e != src) {
-                ret.push(e);
-            }
-        }
-        return ret;
+        super(storage);
     }
 
 
@@ -131,33 +112,15 @@ class TwitterFilter {
         if (tw_info.is_empty()) {
             return false;
         }
+        if (this.storage.userid_mute(tw_info.userid)) {
+            return true;
+        }
         const rep_usernames
-            = this.exclusion(tw_info.rep_usernames, exclude_username);
-        if (this.storage.userid_mute(tw_info.userid)    ||
-            this.storage.username_mute(tw_info.username)||
-            this.storage.dispname_mute(tw_info.dispname)||
-            this.storage.word_mute(tw_info.tweet)       ||
-            this.storage.usernames_mute(rep_usernames)) {
-            return true;
-        }
-        if (!this.storage.json.option.annoying_mute) {
-            return false;
-        }
-        return this.fixed_filter.filter(tw_info.username,
-                                        rep_usernames,
-                                        tw_info.tweet);
-    }
-    /*!
-     *  @brief  URLフィルタ
-     */
-    url_filter(url) {
-        if (this.storage.word_mute(url)) {
-            return true;
-        }
-        if (!this.storage.json.option.annoying_mute) {
-            return false;
-        }
-        return this.fixed_filter.filter('', [], url);
+            = FilterBase.exclusion(tw_info.rep_usernames, exclude_username);
+        return super.filtering_tweet(tw_info.dispname,
+                                     tw_info.username,
+                                     tw_info.tweet,
+                                     rep_usernames);
     }
 
 
@@ -239,7 +202,8 @@ class TwitterFilter {
                 var short_urls = [];
                 urlWrapper.select_short_url(short_urls, tw_info.link_urls);
                 urlWrapper.select_short_url(short_urls, qt_info.link_urls);
-                if (this.short_url_decoder.filter(short_urls, this.url_filter.bind(this))) {
+                if (this.short_url_decoder.filter(short_urls,
+                                                  super.url_filter.bind(this))) {
                     $(tw).detach();
                     return;
                 }
@@ -273,13 +237,7 @@ class TwitterFilter {
                 const userid   = $(user).attr("data-user-id");
                 const username = this.get_tw_username(user);
                 const dispname = $(ar_dispname[0]).text();
-                if (this.storage.userid_mute(userid)    ||
-                    this.storage.username_mute(username)||
-                    this.storage.dispname_mute(dispname)) {
-                } else
-                if (this.storage.json.option.annoying_mute &&
-                    this.fixed_filter.filter_username(username)) {
-                } else {
+                if (!super.filtering_tw_user(dispname, username, userid)) {
                     return;
                 }
                 // $(user)をdetachすると更新挙動が怪しくなるので内容物だけ消す
@@ -323,13 +281,7 @@ class TwitterFilter {
                     const userid   = $(ch).attr("data-user-id");
                     const username = $(ch).attr("data-screen-name");
                     const dispname = $(ch).attr("data-name");
-                    if (this.storage.userid_mute(userid)    ||
-                        this.storage.username_mute(username)||
-                        this.storage.dispname_mute(dispname)) {
-                    } else
-                    if (this.storage.json.option.annoying_mute &&
-                        this.fixed_filter.filter_username(username)) {
-                    } else {
+                    if (!super.filtering_tw_user(dispname, username, userid)) {
                         return;
                     }
                     $(ch).detach();
@@ -345,13 +297,7 @@ class TwitterFilter {
             const userid   = $(prof).attr("data-user-id");
             const username = this.get_tw_username(prof);
             const dispname = this.get_tw_dispname(prof, DISPNAME_TAG);
-            if (this.storage.userid_mute(userid)    ||
-                this.storage.username_mute(username)||
-                this.storage.dispname_mute(dispname)) {
-            } else
-            if (this.storage.json.option.annoying_mute &&
-                this.fixed_filter.filter_username(username)) {
-            } else {
+            if (!super.filtering_tw_user(dispname, username, userid)) {
                 return;
             }
             $(prof).detach();
@@ -394,7 +340,7 @@ class TwitterFilter {
      *  @note   短縮URL展開結果受信処理からの呼び出し用
      */
     filtering_tweet_from_id(loc, obj) {
-        if (!this.url_filter(obj.url)) {
+        if (!super.url_filter(obj.url)) {
             return;
         }
         //
