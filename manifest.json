@@ -1,7 +1,11 @@
 {
    "background": {
       "persistent": true,
-      "scripts": [ "js/url_wrapper.js", "js/background.js" ]
+      "scripts": [ "js/url_wrapper.js",
+                   "js/http_utility.js",
+                   "js/bg_message_sender.js",
+                   "js/bg_short_url_decoder.js",
+                   "js/background.js" ]
    },
    "browser_action": {
       "default_icon": {
