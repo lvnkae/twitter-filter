@@ -1,22 +1,4 @@
 /*!
- *  @brief  ツイート情報
- */
-class TweetInfo {
-    constructor() {
-        this.empty = true;
-        this.userid = '';
-        this.username = '';
-        this.dispname = '';
-        this.tweet = '';
-        this.rep_usernames = [];
-        this.link_urls = [];
-    }
-    is_empty() {
-        return this.empty;
-    }
-}
-
-/*!
  *  @brief  Twitterフィルタ
  */
 class TwitterFilter extends FilterBase {
@@ -26,79 +8,6 @@ class TwitterFilter extends FilterBase {
      */
     constructor(storage) {
         super(storage);
-    }
-
-
-    /*!
-     *  @brief  twetter表示名を得る
-     *  @param  parent  親ノード
-     *  @param  key     ノードキー
-     */
-    get_tw_dispname(parent, key) {
-        const ar_dispname = $(parent).find(key);
-        if (ar_dispname.length == 0) {
-            return '';
-        }
-        return $(ar_dispname[0])
-            .text()
-            .replace(/\u00A0|\r\n|\r|\n/g, '')
-            .replace(/^\s+/g, '');
-    }
-    /*!
-     *  @brief  twetterユーザ名を得る
-     *  @param  parent  親ノード
-     */
-    get_tw_username(parent) {
-        const ar_username = $(parent).find("span.username.u-dir");
-        if (ar_username.length == 0) {
-            return '';
-        }
-        return $(ar_username[0]).text().replace('@', '');
-    }
-    /*!
-     *  @brief  ツイートを得る
-     *  @param[out] tw_info ツイート情報格納先
-     *  @param[in]  parent  ツイート全体のノード
-     *  @param[in]  key     ノードキー
-     */
-    get_tweet(tw_info, parent, key) {
-        const ar_tweet = $(parent).find(key);
-        if (ar_tweet.length == 0) {
-            return;
-        }
-        for (const ch of ar_tweet[0].childNodes) {
-            if (ch.className == 'twitter-atreply pretty-link js-nav') {
-                var username = $(ch).text();
-                tw_info.tweet += username;
-                tw_info.rep_usernames.push(username.replace('@', ''));
-            } else if (ch.className == 'Emoji Emoji--forText') {
-                tw_info.tweet += $(ch).attr("alt");
-            } else if (ch.nodeName == '#text'  ||
-                       ch.nodeName == 'STRONG') {
-                tw_info.tweet += $(ch).text();
-            } else if (ch.nodeName == 'A' ||
-                       ch.nodeName == 'SPAN') {
-                tw_info.tweet += $(ch).text();
-                const link = $(ch).attr("data-expanded-url");
-                if (link != null) {
-                    tw_info.link_urls.push(new urlWrapper(link));
-                }
-            }
-        }
-    }
-    /*!
-     *  @brief  twitter公式reply対象ユーザ名を得る
-     *  @param[out] dst 格納先
-     *  @param[in]  tw  ツイート全体ノード
-     */
-    get_twitter_official_reply_usernames(dst, tw) {
-        const ar_rep = $(tw).find("div.ReplyingToContextBelowAuthor");
-        if (ar_rep.length == 0) {
-            return;
-        }
-         $(ar_rep[0]).find("span.username.u-dir").each((inx, elem)=> {
-            dst.push($(elem).text().replace('@', ''));
-         });
     }
 
 
@@ -123,57 +32,6 @@ class TwitterFilter extends FilterBase {
                                      rep_usernames);
     }
 
-
-    /*!
-     *  @brief  tweet情報を得る
-     *  @param  tw      ツイート全体ノード
-     *  @param  tw_tag  ツイート本文のノードキー
-     */
-    get_tweet_info(tw, tw_tag) {
-        var ret = new TweetInfo();
-        //
-        const tw_info = $(tw).find("div.tweet.js-stream-tweet.js-actionable-tweet.js-profile-popup-actionable.dismissible-content");
-        if (tw_info.length == 0) {
-            return ret;
-        }
-        ret.empty = false;
-        ret.dispname = $(tw_info).attr("data-name");
-        ret.username = $(tw_info).attr("data-screen-name");
-        ret.userid   = $(tw_info).attr("data-user-id");
-        this.get_tweet(ret, tw, tw_tag);
-        this.get_twitter_official_reply_usernames(ret.rep_usernames, tw);
-        return ret;
-    }
-    /*!
-     *  @brief  tweet情報を得る(引用RT)
-     *  @param  tw      ツイート全体ノード
-     *  @param  tw_tag  ツイート本文のノードキー
-     */
-    get_qwote_tweet_info(tw, tw_tag) {
-        var ret = new TweetInfo();
-        //
-        const qttw = $(tw).find("div.QuoteTweet-container");
-        if (qttw.length == 0) {
-            return ret;
-        }
-        ret.empty = false;
-        const QT_DISPNAME_TAG
-            = "b.QuoteTweet-fullname.u-linkComplex-target";
-        ret.dispname = this.get_tw_dispname(qttw, QT_DISPNAME_TAG);
-        const QT_TWEET_TAG
-            = "div.QuoteTweet-text.tweet-text.u-dir";
-        this.get_tweet(ret, qttw, QT_TWEET_TAG);
-        this.get_twitter_official_reply_usernames(ret.rep_usernames, qttw);
-        //
-        const qt_info = $(qttw).find("div.QuoteTweet-innerContainer");
-        if (qt_info.length == 0) {
-            return ret;
-        }
-        ret.username = $(qt_info).attr("data-screen-name");
-        ret.userid   = $(qt_info).attr("data-user-id");
-        return ret;
-    }
-
     /*!
      *  @brief  twitter-TLフィルタ
      *  @param  parent              TLの親ノード
@@ -187,13 +45,13 @@ class TwitterFilter extends FilterBase {
                     return;
                 }
                 // ツイート
-                var tw_info = this.get_tweet_info(tw, tw_tag);
+                var tw_info = TwitterUtil.get_tweet_info(tw, tw_tag);
                 if (this.filtering_tweet(tw_info, exclude_username)) {
                     $(tw).detach();
                     return;
                 }
                 // 引用RT
-                var qt_info = this.get_qwote_tweet_info(tw, tw_tag);
+                var qt_info = TwitterUtil.get_qwote_tweet_info(tw);
                 if (this.filtering_tweet(qt_info, exclude_username)) {
                     $(tw).detach();
                     return;
@@ -235,7 +93,7 @@ class TwitterFilter extends FilterBase {
                     return;
                 }
                 const userid   = $(user).attr("data-user-id");
-                const username = this.get_tw_username(user);
+                const username = TwitterUtil.get_tw_username(user);
                 const dispname = $(ar_dispname[0]).text();
                 if (!super.filtering_tw_user(dispname, username, userid)) {
                     return;
@@ -268,7 +126,11 @@ class TwitterFilter extends FilterBase {
         }
     }
 
-    filtering_twitter_pict_search() {
+    /*!
+     *  @brief  twitter画像検索結果全てにfuncを実行
+     *  @param  func    実行する関数
+     */
+    twitter_searching_pict_each(func) {
         const tag
             = "div#timeline.AdaptiveSearchTimeline.AdaptiveSearchTimeline--mediaGrid";
         $(tag).each((inx, parent)=> {
@@ -276,17 +138,31 @@ class TwitterFilter extends FilterBase {
             $(parent).find(ol_tag).each((inx, ol)=> {
                 $(ol).children().each((inx, ch)=> {
                     if ($(ch).attr("data-resolved-url-small") == null) {
-                        return;
+                        return true;
                     }
-                    const userid   = $(ch).attr("data-user-id");
-                    const username = $(ch).attr("data-screen-name");
-                    const dispname = $(ch).attr("data-name");
-                    if (!super.filtering_tw_user(dispname, username, userid)) {
-                        return;
+                    if (!func(ch)) {
+                        return false;
                     }
-                    $(ch).detach();
                 });
             });
+        });
+    }
+
+    filtering_twitter_pict_search() {
+        this.twitter_searching_pict_each((ch)=> {
+            const userid   = $(ch).attr("data-user-id");
+            const username = $(ch).attr("data-screen-name");
+            const dispname = $(ch).attr("data-name");
+            if (super.filtering_tw_user(dispname, username, userid)) {
+                $(ch).detach();
+                return true;
+            }
+            // tweet詳細を得る(bgへ移譲)
+            if ($(ch).attr("has-detail") == null) {
+                chrome.runtime.sendMessage({command:"get_tweet",
+                                            tweet_id: $(ch).attr("data-item-id")});
+            }
+            return true;
         });
     }
 
@@ -295,8 +171,8 @@ class TwitterFilter extends FilterBase {
             const DISPNAME_TAG
                 = "a.fullname.ProfileNameTruncated-link.u-textInheritColor";
             const userid   = $(prof).attr("data-user-id");
-            const username = this.get_tw_username(prof);
-            const dispname = this.get_tw_dispname(prof, DISPNAME_TAG);
+            const username = TwitterUtil.get_tw_username(prof);
+            const dispname = TwitterUtil.get_tw_dispname(prof, DISPNAME_TAG);
             if (!super.filtering_tw_user(dispname, username, userid)) {
                 return;
             }
@@ -344,9 +220,11 @@ class TwitterFilter extends FilterBase {
             return;
         }
         //
+        var b_search = false;
         var tl_parent = null;
         if (loc.in_twitter_search()) {
             tl_parent = $("div#timeline.content-main.AdaptiveSearchTimeline");
+            b_search = true;
         } else if (loc.in_twitter_user_page()) {
             tl_parent = $("div#timeline.ProfileTimeline");
         } else if (loc.in_twitter_tw_thread()) {
@@ -367,6 +245,16 @@ class TwitterFilter extends FilterBase {
                 }
             });
         }); 
+        if (b_search) {
+            this.twitter_searching_pict_each((ch)=> {
+                const id = $(ch).attr("data-item-id");
+                if (id in obj.id) {
+                    $(ch).detach();
+                    return false;
+                }
+                return true;
+            });
+        }
     }
 
     /*!
@@ -378,5 +266,60 @@ class TwitterFilter extends FilterBase {
     tell_decoded_short_url(short_url, url, loc) {
         this.short_url_decoder.tell_decoded(short_url, url, loc,
                                             this.filtering_tweet_from_id.bind(this));
+    }
+
+    /*!
+     *  @brief  tweetフィルタ(詳細判定)
+     *  @param  loc     現在location(urlWrapper)
+     *  @param  tweet   tweet詳細(json)
+     *  @note   tweet詳細取得結果受信からの呼び出し用
+     *  @note   画像検索結果などtweet詳細が欠落したページの追加フィルタ
+     *  @note   ※tweet詳細に"引用RT"は含まれない
+     */
+    filtering_tweet_from_tweet_detail(loc, tweet) {
+        var tl_parent = null;
+        if (!loc.in_twitter_search()) {
+            // 検索結果フィルタでしか使わない
+            return;
+        }
+        this.twitter_searching_pict_each((ch)=> {
+            if (tweet.id != $(ch).attr("data-item-id")) {
+                return true;
+            }
+            const parser = new DOMParser();
+            const tw = parser.parseFromString(tweet.tweet_html, "text/html");
+            // ツイートフィルタ
+            const tw_tag = "p.TweetTextSize.js-tweet-text.tweet-text";
+            var tw_info = TwitterUtil.get_tweet_info(tw, tw_tag);
+            if (super.filtering_tweet_info(tw_info)) {
+                $(ch).detach();
+                return false;
+            }
+            // ツイートに含まれる短縮URLを処理する
+            var short_urls = [];
+            urlWrapper.select_short_url(short_urls, tw_info.link_urls);
+            if (short_urls.length > 0) {
+                if (this.short_url_decoder.filter(short_urls,
+                                                    super.url_filter.bind(this))) {
+                    $(ch).detach();
+                    return false;
+                }
+                this.short_url_decoder.entry(short_urls, tweet.id);
+            }
+            $(ch).attr("has-detail", "");
+            return false;
+        });
+        //
+        this.short_url_decoder.decode();
+    }
+
+    /*!
+     *  @brief  tweet詳細取得完了通知
+     *  @param  middle_id   中間URL識別ID
+     *  @param  tweet       tweet詳細(未解析JSON)
+     *  @param  loc         現在location
+     */
+    tell_get_tweet(middle_id, tweet, loc) {
+        this.filtering_tweet_from_tweet_detail(loc, tweet);
     }
 }

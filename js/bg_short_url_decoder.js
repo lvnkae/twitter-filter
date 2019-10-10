@@ -64,7 +64,6 @@ class BGShortUrlDecoder extends BGMessageSender {
     /*!
      *  @brief  起点短縮URLを得る
      *  @param  requestId   ResponseのrequestId
-     *  @param  url         Responseを得たurl
      *  @note   多段短縮URL対策
      */
     get_short_url_org(requestId) {
@@ -111,7 +110,7 @@ class BGShortUrlDecoder extends BGMessageSender {
             redirect: "manual",
             credentials: "omit",
             headers: {
-                "TwitterFilterCommand": "DecodeShortUrl",
+                "TwitterFilterCommand": BGShortUrlDecoder.command(),
                 "StartURL": url_org,
             },
         })

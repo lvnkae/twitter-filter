@@ -5,6 +5,7 @@
                    "js/http_utility.js",
                    "js/bg_message_sender.js",
                    "js/bg_short_url_decoder.js",
+                   "js/bg_tweet_accessor.js",
                    "js/background.js" ]
    },
    "browser_action": {
@@ -22,6 +23,7 @@
               "js/fixed_filter.js",
               "js/storage_data.js",
               "js/short_url_decoder.js",
+              "js/twitter_utility.js",
               "js/filter_base.js",
               "js/twitter_filter.js",
               "js/yahoo_realtime_search_filter.js",
@@ -54,7 +56,9 @@
                     "http://nav.cx/*",
                     "https://npx.me/*",
                     "http://ow.ly/*",
-                    "https://tinyurl.com/*" ],
+                    "https://tinyurl.com/*",
+                    "https://twitter.com/i/tweet/*",
+                    "https://ord.yahoo.co.jp/o/realtime/*" ],
    "short_name": "TwitterFilter",
    "version": "1.0.0.0"
 }

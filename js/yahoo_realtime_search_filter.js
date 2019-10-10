@@ -12,9 +12,9 @@ class YahooRealtimeSearchFilter extends FilterBase {
 
 
     /*!
-     *  @brief  ツイートURLから固有IDを得る
+     *  @brief  tweet詳細への中継URLから固有IDを得る
      *  @param  parent  親ノード
-     *  @note   ツイート詳細
+     *  @note   tweet詳細
      *  @note       twitter.com/$(user)/status/$(tweet_id)
      *  @note   への中継URL
      *  @note       ord.yahoo.co.jp/o/realtime/RV=1/RE=$(re)/RH=$(rh)/RB=/RU=$(ru)/RS=$(rs);_ylt=$(YLT);_ylu=$(YLU)
@@ -22,22 +22,23 @@ class YahooRealtimeSearchFilter extends FilterBase {
      *  @note   (重複してなさそうだし一番短い[24文字]ので)
      */
     get_unique_id_from_tweet_url(parent) {
-        var unique_id = '';
+        var ret = {unique_id:'', middle_url:''};
         $(parent).find("span.time").each((inx, tm)=>{
             $(tm).find("a").each((inx, a)=> {
                 const href = $(a).attr("href");
                 const href_div = href.split('/');
                 const RS_div = href_div[href_div.length-1].split(';');
-                unique_id = RS_div[1].split('=')[1];
+                ret.unique_id = RS_div[1].split('=')[1];
+                ret.middle_url = href;
                 return false;
             });
             return false;
         });
-        return unique_id;
+        return ret;
     }
 
     /*!
-     *  @brief  ツイートを得る
+     *  @brief  tweetを得る
      *  @param[in]  parent          親ノード
      *  @param[out] rep_usernames   返信ユーザ群(格納先)
      *  @param[out] link_url        リンクアドレス群(格納先)
@@ -60,12 +61,20 @@ class YahooRealtimeSearchFilter extends FilterBase {
                 } else
                 if (ch.nodeName == "A") {
                     const link = $(ch).text();
+                    // note
+                    // class:    target:blank -> replyユーザ
+                    // class:url target:      -> ハッシュタグ
+                    // class:url target:blank -> URL
                     if (ch.className == "url") {
                         if ($(ch).attr("target") != null) {
                             link_url.push(new urlWrapper('https://' + link));
                         }
-                        tweet += $(ch).text();
+                    } else if (ch.className == '') {
+                        if ($(ch).attr("target") != null) {
+                            rep_usernames.push(link.replace('@', ''));
+                        }
                     }
+                    tweet += link;
                 } else
                 if (ch.nodeName == 'SPAN') {
                     if (ch.className == 'rep') {
@@ -102,16 +111,23 @@ class YahooRealtimeSearchFilter extends FilterBase {
                     $(data).detach();
                     return;
                 }
+                const ret = this.get_unique_id_from_tweet_url(data);
                 var short_urls = [];
                 urlWrapper.select_short_url(short_urls, link_url);
-                if (this.short_url_decoder.filter(short_urls,
-                                                  super.url_filter.bind(this))) {
-                    $(data).detach();
-                    return;
+                if (short_urls.length > 0) {
+                    if (this.short_url_decoder.filter(short_urls,
+                                                      super.url_filter.bind(this))) {
+                        $(data).detach();
+                        return;
+                    }
+                    this.short_url_decoder.entry(short_urls, ret.unique_id);
                 }
-                const yid = this.get_unique_id_from_tweet_url(data);
-                this.short_url_decoder.entry(short_urls, yid);
-                // ツイート詳細を得る(bgへ移譲) >ToDo<
+                // tweet詳細を得る(bgへ移譲)
+                if ($(data).attr("tweet-item-id") == null) {
+                    chrome.runtime.sendMessage({command:"get_tweet",
+                                                middle_id: ret.unique_id,
+                                                middle_url: ret.middle_url});
+                }
             });
         });
 
@@ -142,10 +158,10 @@ class YahooRealtimeSearchFilter extends FilterBase {
             $(tsm).find("div.cnt.cf").each((inx, data)=> {
                 const ref = $(data).find("span.ref");
                 if (ref.length == 0 || $(ref).text() != "Twitter") {
-                    return;
+                    return true;
                 }
-                const yid = this.get_unique_id_from_tweet_url(data);
-                if (yid in obj.id) {
+                const ret = this.get_unique_id_from_tweet_url(data);
+                if (ret.unique_id in obj.id) {
                     $(data).detach();
                     return false;
                 }
@@ -164,5 +180,61 @@ class YahooRealtimeSearchFilter extends FilterBase {
                                             this
                                             .filtering_search_result_from_id
                                             .bind(this));
+    }
+
+    /*!
+     *  @brief  検索結果フィルタ(tweet詳細)
+     *  @param  middle_id   中間URL識別ID
+     *  @param  tweet       tweet詳細(json)
+     *  @note   tweet詳細取得結果受信からの呼び出し用
+     *  @note   ※tweet詳細に"引用RT"は含まれない
+     */
+    filtering_search_result_from_tweet_detail(middle_id, tweet) {
+        $("div#TSm").each((inx, tsm)=> {
+            $(tsm).find("div.cnt.cf").each((inx, data)=> {
+                const ref = $(data).find("span.ref");
+                if (ref.length == 0 || $(ref).text() != "Twitter") {
+                    return true;
+                }
+                const ret = this.get_unique_id_from_tweet_url(data);
+                if (ret.unique_id != middle_id) {
+                    return true;
+                }
+                const parser = new DOMParser();
+                const tw = parser.parseFromString(tweet.tweet_html, "text/html");
+                // ツイートフィルタ
+                const tw_tag = "p.TweetTextSize.js-tweet-text.tweet-text";
+                var tw_info = TwitterUtil.get_tweet_info(tw, tw_tag);
+                if (super.filtering_tweet_info(tw_info)) {
+                    $(data).detach();
+                    return false;
+                }
+                // ツイートに含まれる短縮URLを処理する
+                var short_urls = [];
+                if (short_urls.length > 0) {
+                    urlWrapper.select_short_url(short_urls, tw_info.link_urls);
+                    if (this.short_url_decoder.filter(short_urls,
+                                                      super.url_filter.bind(this))) {
+                        $(data).detach();
+                        return false;
+                    }
+                    this.short_url_decoder.entry(short_urls, middle_id);
+                }
+                $(data).attr("tweet-item-id", tweet.id);
+                return false;
+            });
+        }); 
+        //
+        this.short_url_decoder.decode();
+    }
+
+    /*!
+     *  @brief  tweet詳細取得完了通知
+     *  @param  middle_id   中間URL識別ID
+     *  @param  tweet       tweet詳細(未解析JSON)
+     *  @param  loc         現在location
+     */
+    tell_get_tweet(middle_id, tweet, loc) {
+        this.filtering_search_result_from_tweet_detail(middle_id, tweet);
     }
 }

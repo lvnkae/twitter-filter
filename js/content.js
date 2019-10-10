@@ -166,6 +166,17 @@ class Filter {
                         }
                     }
                 } else
+                if (request.command == "get_tweet") {
+                    if (request.result == 'success') {
+                        if (this.filter_instance) {
+                            this
+                            .filter_instance
+                            .tell_get_tweet(request.middle_id,
+                                            request.tweet,
+                                            gContent.current_location);
+                        }
+                    }
+                } else
                 if (request.command == "update-storage") {
                     this.storage.load().then();
                 }

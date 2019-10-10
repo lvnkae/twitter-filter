@@ -6,6 +6,7 @@ class Background {
     constructor() {
         this.extention_id = '';
         this.short_url_decoder = new BGShortUrlDecoder();
+        this.tweet_accessor = new BGTweetAccessor();
         //
         this.initialize();
     }
@@ -18,6 +19,7 @@ class Background {
     entry(extention_id, tab_id) {
         this.extention_id = extention_id;
         this.short_url_decoder.entry(tab_id);
+        this.tweet_accessor.entry(tab_id);
     }
     
     /*!
@@ -39,6 +41,7 @@ class Background {
             return;
         }
         this.short_url_decoder.on_headers_received(details);
+        this.tweet_accessor.on_headers_received(details);
     }
 
     /*!
@@ -51,8 +54,11 @@ class Background {
         }
         const command = HttpUtil.get_param(details.requestHeaders,
                                            "TwitterFilterCommand");
-        if (command == "DecodeShortUrl") {
+        if (command == BGShortUrlDecoder.command()) {
             this.short_url_decoder.on_before_send_headers(details);
+        } else
+        if (command == BGTweetAccessor.command()) {
+            this.tweet_accessor.on_before_send_headers(details);
         }
     }
 
@@ -77,7 +83,8 @@ class Background {
             'http://nav.cx/*',
             'https://npx.me/*',
             'http://ow.ly/*',
-            'https://tinyurl.com/*'
+            'https://tinyurl.com/*',
+            'https://ord.yahoo.co.jp/o/realtime/*'
         ];
         //
         chrome.webRequest.onHeadersReceived.addListener(
@@ -96,6 +103,9 @@ class Background {
             (request, sender, sendResponse)=> {
                 if (request.command == BGShortUrlDecoder.command()) {
                     this.short_url_decoder.on_message_decode_short_url(request);
+                } else
+                if (request.command == BGTweetAccessor.command()) {
+                    this.tweet_accessor.on_message_get_tweet(request);
                 } else
                 if (request.command == "start_content") {
                     this.entry(sender.id, sender.tab.id);

@@ -31,6 +31,31 @@ class FilterBase {
     }
 
     /*!
+     *  @brief  tweetフィルタ(fullパラメータ)
+     *  @param  dispname        表示名
+     *  @param  username        ユーザ名
+     *  @param  userid          ユーザID
+     *  @param  tweet           ツイート本文
+     *  @param  rep_usernames   リプライ対象ユーザ名
+     *  @retval true    当該tweetはミュート対象だ
+     */
+    filtering_tweet_info(tw_info) {
+        if (this.storage.userid_mute(tw_info.userid)    ||
+            this.storage.username_mute(tw_info.username)||
+            this.storage.dispname_mute(tw_info.dispname)||
+            this.storage.word_mute(tw_info.tweet)       ||
+            this.storage.usernames_mute(tw_info.rep_usernames)) {
+            return true;
+        }
+        if (!this.storage.json.option.annoying_mute) {
+            return false;
+        }
+        return this.fixed_filter.filter(tw_info.username,
+                                        tw_info.rep_usernames,
+                                        tw_info.tweet);
+    }
+    
+    /*!
      *  @brief  tweetフィルタ
      *  @param  dispname        表示名
      *  @param  username        ユーザ名
