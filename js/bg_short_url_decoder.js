@@ -248,7 +248,7 @@ class BGShortUrlDecoder extends BGMessageSender {
      *  @brief  onMessageコールバック
      *  @param  request
      */
-    on_message_decode_short_url(request) {
+    on_message(request) {
         const expand_url = this.get_expand_url(request.short_url);
         if (expand_url == null) {
             this.entry_short_url(request.short_url);

@@ -93,7 +93,7 @@ class urlWrapper {
     }
     in_yahoo_realtime_search_top() {
         return this.in_yahoo_realtime_search() &&
-               this.subdir.lenght == 1 &&
+               this.subdir.length == 1 &&
                this.subdir[0] == "realtime";
     }
     in_yahoo_realtime_search_result() {
@@ -101,6 +101,15 @@ class urlWrapper {
                this.subdir.length > 1 &&
                this.subdir[0] == "realtime" &&
                this.subdir[1].indexOf("search") >= 0;
+    }
+
+    in_togetter() {
+        return this.domain == 'togetter.com';
+    }
+    in_togetter_content() {
+        return this.in_togetter() &&
+               this.subdir.length == 2 &&
+               this.subdir[0] == "li";
     }
 
     is_short_url_domain() {

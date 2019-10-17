@@ -207,7 +207,7 @@ class BGTweetAccessor extends BGMessageSender {
      *  @brief  onMessageコールバック
      *  @param  request
      */
-    on_message_get_tweet(request) {
+    on_message(request) {
         if (request.middle_id != null) {
             this.entry_middle_id(request.middle_id);
             this.request_tweet_id(request.middle_url, request.middle_id);

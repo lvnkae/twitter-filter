@@ -63,8 +63,7 @@ class ShortUrlDecoder {
             if (!obj.busy && obj.url == null) {
                 obj.busy = true;
                 // content_script内で他domainへアクセスするとCORBされるためbgへ移譲
-                chrome.runtime.sendMessage(
-                    {command:"decode_short_url", short_url: key});
+                MessageUtil.send_message({command:"decode_short_url", short_url: key});
             }
         }
     }
@@ -73,15 +72,14 @@ class ShortUrlDecoder {
      *  @brief  短縮URL展開完了通知
      *  @param  short_url   展開元短縮URL
      *  @param  url         展開後URL
-     *  @param  loc         現在location
      *  @param  filter_func フィルタ関数
      */
-    tell_decoded(short_url, url, loc, filter_func) {
+    tell_decoded(short_url, url, filter_func) {
         if (short_url in this.short_url_map) {
             var obj = this.short_url_map[short_url];
             obj.url = url;
             obj.busy = false;
-            filter_func(loc, obj);
+            filter_func(obj);
         }
     }
 }

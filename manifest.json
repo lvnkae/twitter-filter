@@ -6,6 +6,7 @@
                    "js/bg_message_sender.js",
                    "js/bg_short_url_decoder.js",
                    "js/bg_tweet_accessor.js",
+                   "js/bg_tw_profile_accessor.js",
                    "js/background.js" ]
    },
    "browser_action": {
@@ -18,17 +19,21 @@
    },
    "content_scripts": [ {
       "js": [ "js/jquery-3.3.1.min.js",
+              "js/message_utility.js",
               "js/text_utility.js",
               "js/url_wrapper.js",
               "js/fixed_filter.js",
               "js/storage_data.js",
-              "js/short_url_decoder.js",
               "js/twitter_utility.js",
+              "js/short_url_decoder.js",
+              "js/tw_profile_accessor.js",
               "js/filter_base.js",
+              "js/togetter_filter.js",
               "js/twitter_filter.js",
               "js/yahoo_realtime_search_filter.js",
               "js/content.js" ],
-      "matches": [ "https://twitter.com/*",
+      "matches": [ "https://togetter.com/li/*",
+                   "https://twitter.com/*",
                    "https://search.yahoo.co.jp/realtime/*"],
       "run_at": "document_start"
    } ],
@@ -37,6 +42,7 @@
       "19": "img/badge_on.png",
       "48": "img/icon_48.png"
    },
+   "web_accessible_resources": [ "img/danger_48.png" ],
    "manifest_version": 2,
    "name": "Twitterフィルタ",
    "permissions": [ "tabs", "storage", "webRequest",
@@ -57,8 +63,9 @@
                     "https://npx.me/*",
                     "http://ow.ly/*",
                     "https://tinyurl.com/*",
+                    "https://twitter.com/i/profiles/*",
                     "https://twitter.com/i/tweet/*",
-                    "https://ord.yahoo.co.jp/o/realtime/*" ],
+                    "https://ord.yahoo.co.jp/o/realtime/*"],
    "short_name": "TwitterFilter",
    "version": "1.0.0.0"
 }

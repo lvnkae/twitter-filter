@@ -7,6 +7,7 @@ class Background {
         this.extention_id = '';
         this.short_url_decoder = new BGShortUrlDecoder();
         this.tweet_accessor = new BGTweetAccessor();
+        this.tw_profile_accessor = new BGTwProfileAccessor();
         //
         this.initialize();
     }
@@ -20,6 +21,7 @@ class Background {
         this.extention_id = extention_id;
         this.short_url_decoder.entry(tab_id);
         this.tweet_accessor.entry(tab_id);
+        this.tw_profile_accessor.entry(tab_id);
     }
     
     /*!
@@ -102,11 +104,14 @@ class Background {
         chrome.runtime.onMessage.addListener(
             (request, sender, sendResponse)=> {
                 if (request.command == BGShortUrlDecoder.command()) {
-                    this.short_url_decoder.on_message_decode_short_url(request);
+                    this.short_url_decoder.on_message(request);
                 } else
                 if (request.command == BGTweetAccessor.command()) {
-                    this.tweet_accessor.on_message_get_tweet(request);
+                    this.tweet_accessor.on_message(request);
                 } else
+                if (request.command == BGTwProfileAccessor.command()) {
+                    this.tw_profile_accessor.on_message(request);
+                } else 
                 if (request.command == "start_content") {
                     this.entry(sender.id, sender.tab.id);
                 }

@@ -146,4 +146,60 @@ class TwitterUtil {
         ret.userid   = $(qt_info).attr("data-user-id");
         return ret;
     }
+
+    /*!
+     *  @brief  htmlからtweet情報を得る
+     *  @param  tweet_html  tweet(html)
+     */
+    static get_tweet_info_from_html(tweet_html) {
+        const parser = new DOMParser();
+        const tw = parser.parseFromString(tweet_html, "text/html");
+        const tw_tag = "p.TweetTextSize.js-tweet-text.tweet-text";
+        return this.get_tweet_info(tw, tw_tag);
+    }
+
+    /*!
+     *  @brief  ニュースから元tweetのid(data-item-id)を得る
+     *  @note   検索結果(話題のツイート)で採用されている、tweetを変形し"記事"として表示
+     *  @note   する特殊形式に対する操作。リンク先記事のタイトル・見出し(記事の出だし)と
+     *  @note   リンク先記事の公式アカウントが表示され、元tweetユーザや本文は隠蔽されて
+     *  @note   いるので厄介。
+     */
+    static get_news_org_tweet_id(parent) {
+        const detail = $(parent).find("a.AdaptiveNewsHeadlineDetails-date");
+        if (detail.length == 0) {
+            return null;
+        }
+        // detailのhrefが元tweetへのリンク
+        // 　href="/$(username)/status/$(data-item-id)"
+        const href_div = $(detail).attr("href").split('/');
+        return href_div[href_div.length-1];
+    }
+
+    /*!
+     *  @brief  togetterコメントを得る
+     *  @param  parent  コメントノード
+     *  @note   tweet連携してる場合も多いのでここに置いとく
+     */
+    static get_togetter_comment(nd_tweet) {
+        var tw_info = new TweetInfo();
+        tw_info.empty = false;
+        for (const ch of nd_tweet.childNodes) {
+            if (ch.nodeName == 'A') {
+                const txt = $(ch).text();
+                tw_info.tweet += txt;
+                if (ch.className == "comment_reply") {
+                    tw_info.rep_usernames.push(txt);
+                } else {
+                    const url = new urlWrapper(txt);
+                    if (url.domain != '') {
+                        tw_info.link_urls.push(url);
+                    }
+                }
+            } else {
+                tw_info.tweet +=  $(ch).text();
+            }
+        }
+        return tw_info;
+    }
 }
