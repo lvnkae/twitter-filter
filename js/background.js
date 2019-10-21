@@ -8,6 +8,7 @@ class Background {
         this.short_url_decoder = new BGShortUrlDecoder();
         this.tweet_accessor = new BGTweetAccessor();
         this.tw_profile_accessor = new BGTwProfileAccessor();
+        this.tw_profile_image_accessor = new BGTwProfileImageAccessor();
         //
         this.initialize();
     }
@@ -22,6 +23,7 @@ class Background {
         this.short_url_decoder.entry(tab_id);
         this.tweet_accessor.entry(tab_id);
         this.tw_profile_accessor.entry(tab_id);
+        this.tw_profile_image_accessor.entry(tab_id);
     }
     
     /*!
@@ -44,6 +46,7 @@ class Background {
         }
         this.short_url_decoder.on_headers_received(details);
         this.tweet_accessor.on_headers_received(details);
+        this.tw_profile_image_accessor.on_headers_received(details);
     }
 
     /*!
@@ -61,6 +64,9 @@ class Background {
         } else
         if (command == BGTweetAccessor.command()) {
             this.tweet_accessor.on_before_send_headers(details);
+        } else
+        if (command == BGTwProfileImageAccessor.command()) {
+            this.tw_profile_image_accessor.on_before_send_headers(details);
         }
     }
 
@@ -86,7 +92,8 @@ class Background {
             'https://npx.me/*',
             'http://ow.ly/*',
             'https://tinyurl.com/*',
-            'https://ord.yahoo.co.jp/o/realtime/*'
+            'https://ord.yahoo.co.jp/o/realtime/*',
+            'https://twitter.com/*/profile_image?size=normal'
         ];
         //
         chrome.webRequest.onHeadersReceived.addListener(
@@ -111,7 +118,10 @@ class Background {
                 } else
                 if (request.command == BGTwProfileAccessor.command()) {
                     this.tw_profile_accessor.on_message(request);
-                } else 
+                } else
+                if (request.command == BGTwProfileImageAccessor.command()) {
+                    this.tw_profile_image_accessor.on_message(request);
+                } else
                 if (request.command == "start_content") {
                     this.entry(sender.id, sender.tab.id);
                 }

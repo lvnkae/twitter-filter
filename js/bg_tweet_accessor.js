@@ -78,13 +78,29 @@ class BGTweetAccessor extends BGMessageSender {
             },
         })
         .then(response => {
-            return response.json();
+            const STS_OK = 200;
+            const STS_TWEET_NOT_FOUND = 403;
+            if (response.status == STS_OK) {
+                return response.json();
+            } else
+            if (response.status == STS_TWEET_NOT_FOUND) {
+                // tweet削除
+                // 鍵アカウント
+                // 凍結アカウント
+                // 削除アカウント
+                this.send_reply({command: BGTweetAccessor.command(),
+                                 result: "not_found",
+                                 tweet_id: tweet_id,
+                                 middle_id: middle_id});
+            }
         })
         .then(json => {
-            this.send_reply({command: BGTweetAccessor.command(),
-                             result: "success",
-                             tweet: json,
-                             middle_id: middle_id});
+            if (json != null) {
+                this.send_reply({command: BGTweetAccessor.command(),
+                                 result: "success",
+                                 tweet: json,
+                                 middle_id: middle_id});
+            }
         })
         .catch(err => {
             // [error]fetchエラー

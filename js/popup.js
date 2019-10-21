@@ -44,10 +44,12 @@ class Popup {
             this.updateTextarea();
             this.badge.update(this.storage);
         });
+        this.ex_userid_mute_buffer = [];    // ユーザIDミュート詳細設定バッファ
+        this.ex_userid_mute_last = '';      // 最後に「ユーザIDミュート詳細設定」画面を開いたユーザID
         this.ex_dispname_mute_buffer = [];  // 表示名ミュート詳細設定バッファ
         this.ex_dispname_mute_last = '';    // 最後に「表示名ミュート詳細設定」画面を開いた表示名
         this.post_rt_notation_buffer = [];  // RT後ツイート記法設定バッファ
-        this.post_rt_username_last = '';    // 最後に「RG後ツイート記法設定」画面を開いたユーザ名
+        this.post_rt_userid_last = '';      // 最後に「RG後ツイート記法設定」画面を開いたユーザID
         //
         this.checkbox_sw_filter().change(()=> {
             this.button_save_enable();
@@ -79,8 +81,11 @@ class Popup {
         this.textarea_userid_mute().keyup(()=> {
             this.textarea_userid_mute_keyup();
         });
-        this.textarea_username_mute().keyup(()=> {
-            this.textarea_username_mute_keyup();
+        this.textarea_userid_mute().dblclick(()=> {
+            this.textarea_userid_mute_dblclick();
+        });
+        this.textarea_userid_mute_ex_word().keyup(()=> {
+            this.textarea_userid_mute_ex_word_keyup();
         });
         this.textarea_dispname_mute().keyup(()=> {
             this.textarea_dispname_mute_keyup();
@@ -91,14 +96,17 @@ class Popup {
         this.textarea_word_mute().keyup(()=> {
             this.textarea_word_mute_keyup();
         });
-        this.textarea_post_rt_setting_username().keyup(()=> {
-            this.textarea_post_rt_setting_username_keyup();
+        this.textarea_post_rt_setting_userid().keyup(()=> {
+            this.textarea_post_rt_setting_userid_keyup();
         });
-        this.textarea_post_rt_setting_username().dblclick(()=> {
-            this.textarea_post_rt_setting_username_dblclick();
+        this.textarea_post_rt_setting_userid().dblclick(()=> {
+            this.textarea_post_rt_setting_userid_dblclick();
         });
         this.textarea_post_rt_notation().keyup(()=> {
             this.textarea_post_rt_notation_keyup();
+        });
+        this.textarea_tg_comment_user_mute().keyup(()=> {
+            this.textarea_tg_comment_user_mute_keyup();
         });
         //
         this.button_save().click(()=> {
@@ -150,8 +158,8 @@ class Popup {
     textarea_userid_mute() {
         return $("textarea[name=userid_mute]");
     }
-    textarea_username_mute() {
-        return $("textarea[name=username_mute]");
+    textarea_userid_mute_ex_word() {
+        return $("textarea[name=userid_mute_ex_word]");
     }
     textarea_dispname_mute() {
         return $("textarea[name=dispname_mute]");
@@ -159,21 +167,25 @@ class Popup {
     textarea_word_mute() {
         return $("textarea[name=word_mute]");
     }
-    textarea_post_rt_setting_username() {
-        return $("textarea[name=post_rt_setting_username]");
+    textarea_post_rt_setting_userid() {
+        return $("textarea[name=post_rt_setting_userid]");
     }
     textarea_post_rt_notation() {
         return $("textarea[name=post_rt_notation]");
     }
+    textarea_tg_comment_user_mute() {
+        return $("textarea[name=tg_comment_user_mute]");
+    }
 
     hide_textarea_all() {
         this.textarea_userid_mute().hide();
-        this.textarea_username_mute().hide();
+        this.textarea_userid_mute_ex_word().hide();
         this.textarea_dispname_mute().hide();
         this.hide_ex_dispname_mute();
         this.textarea_word_mute().hide();
-        this.textarea_post_rt_setting_username().hide();
+        this.textarea_post_rt_setting_userid().hide();
         this.textarea_post_rt_notation().hide();
+        this.textarea_tg_comment_user_mute().hide();
         this.hide_option();
     }
     hide_ex_dispname_mute() {
@@ -214,8 +226,9 @@ class Popup {
             this.button_save().prop("disabled", false);
         }
     }
-    textarea_username_mute_keyup() {
-        if (this.textarea_username_mute().val() != this.storage.username_mute_text) {
+    textarea_userid_mute_ex_word_keyup() {
+        if (this.textarea_userid_mute_ex_word().val()
+            != this.ex_userid_mute_buffer[this.ex_userid_mute_last]) {
             this.button_save().prop("disabled", false);
         }
     }
@@ -229,19 +242,70 @@ class Popup {
             this.button_save().prop("disabled", false);
         }
     }
-    textarea_post_rt_setting_username_keyup() {
-        if (this.storage.post_rt_setting_username_text !=
-            this.textarea_post_rt_setting_username().val()) {
+    textarea_post_rt_setting_userid_keyup() {
+        if (this.storage.post_rt_setting_userid_text !=
+            this.textarea_post_rt_setting_userid().val()) {
             this.button_save().prop("disabled", false);
         }
     }
     textarea_post_rt_notation_keyup() {
         if (this.textarea_post_rt_notation().val()
-            != this.post_rt_notation_buffer[this.post_rt_username_last]) {
+            != this.post_rt_notation_buffer[this.post_rt_userid_last]) {
+            this.button_save().prop("disabled", false);
+        }
+    }
+    textarea_tg_comment_user_mute_keyup() {
+        if (this.storage.tg_comment_user_mute_text !=
+            this.textarea_tg_comment_user_mute().val()) {
             this.button_save().prop("disabled", false);
         }
     }
 
+    /*!
+     *  @brief  前回「ユーザIDミュート詳細設定」の後始末
+     */
+    cleanup_ex_userid_mute() {
+        if (this.ex_userid_mute_last != '') {
+            this.ex_userid_mute_buffer_to_reflect_current(this.ex_userid_mute_last);
+            var key = this.selectbox_filter_key()
+                    + " option[value=" + this.selectbox_value_ex_userid_mute() + "]";
+            $(key).remove();
+        }
+    }
+    //
+    textarea_userid_mute_dblclick() {
+        var t = this.textarea_userid_mute();
+        const keyword
+            = TextUtil.search_text_connected_by_new_line(t[0].selectionStart, t.val());
+        if (keyword == null) {
+            return;
+        }
+        const userid = keyword.split('/')[0];
+        this.cleanup_ex_userid_mute();
+        this.cleanup_ex_dispname_mute();
+        this.cleanup_post_rt_notation();
+        this.ex_userid_mute_last = userid;
+        // selectboxに「$(keyword)の詳細設定」を追加
+        {
+            const val = this.selectbox_value_ex_userid_mute();
+            const max_disp_keyword = 36;
+            const text = keyword.slice(0, max_disp_keyword) + 'の詳細設定';
+            this.selectbox_filter().append($("<option>").val(val).text(text));
+        }
+        //「$(keyword)詳細設定」準備
+        {
+            if (userid in this.ex_userid_mute_buffer) {
+                const buff = this.ex_userid_mute_buffer[userid];
+                this.textarea_userid_mute_ex_word().val(buff);
+            } else {
+                this.ex_userid_mute_buffer[userid] = '';
+                this.textarea_userid_mute_ex_word().val('');
+            }
+        }
+        this.selectbox_filter().val(this.selectbox_value_ex_userid_mute());
+        this.selectbox_filter_change();
+    }
+    
     /*!
      *  @brief  前回「表示名ミュート詳細設定」の後始末
      */
@@ -263,6 +327,7 @@ class Popup {
         if (dispname == null) {
             return;
         }
+        this.cleanup_ex_userid_mute();
         this.cleanup_ex_dispname_mute();
         this.cleanup_post_rt_notation();
         this.ex_dispname_mute_last = dispname;
@@ -294,41 +359,43 @@ class Popup {
      *  @brief  前回「RT後ツイート記法設定」の後始末
      */
     cleanup_post_rt_notation() {
-        if (this.post_rt_username_last != '') {
-            this.post_rt_notation_buffer_to_reflect_current(this.post_rt_username_last);
+        if (this.post_rt_userid_last != '') {
+            this.post_rt_notation_buffer_to_reflect_current(this.post_rt_userid_last);
             var key = this.selectbox_filter_key()
                     + " option[value=" + this.selectbox_value_post_rt_notation() + "]";
             $(key).remove();
         }
     }
     //
-    textarea_post_rt_setting_username_dblclick() {
-        var t = this.textarea_post_rt_setting_username();
-        const username
+    textarea_post_rt_setting_userid_dblclick() {
+        var t = this.textarea_post_rt_setting_userid();
+        const keyword
             = TextUtil.search_text_connected_by_new_line(
                 t[0].selectionStart,
                 t.val());
-        if (username == null) {
+        if (keyword == null) {
             return;
         }
+        const userid = keyword.split('/')[0];
+        this.cleanup_ex_userid_mute();
         this.cleanup_post_rt_notation();
         this.cleanup_ex_dispname_mute();
-        this.post_rt_username_last = username;
-        // selectboxに「$(username)のRT後ツイート記法」を追加
+        this.post_rt_userid_last = userid;
+        // selectboxに「$(keyword)のRT後ツイート記法」を追加
         {
             const val = this.selectbox_value_post_rt_notation();
-            const max_disp_username = 16;
-            const text = username.slice(0, max_disp_username) + 'のRT後ツイート記法';
+            const max_disp_keyword = 36;
+            const text = keyword.slice(0, max_disp_keyword) + 'のRT後ツイート記法';
             this.selectbox_filter().append($("<option>").val(val).text(text));
         }
-        //「$(username)固有RT後ツイート記法」設定用textareaの準備
+        //「$(keyword)固有RT後ツイート記法」設定用textareaの準備
         {
-            if (username in this.post_rt_notation_buffer) {
-                const rt_notation = this.post_rt_notation_buffer[username];
+            if (userid in this.post_rt_notation_buffer) {
+                const rt_notation = this.post_rt_notation_buffer[userid];
                 this.textarea_post_rt_notation().val(rt_notation);
             } else {
+                this.post_rt_notation_buffer[userid] = '';
                 this.textarea_post_rt_notation().val('');
-                this.post_rt_notation_buffer[username] = '';
             }
         }
         this.selectbox_filter().val(this.selectbox_value_post_rt_notation());
@@ -342,6 +409,9 @@ class Popup {
         return $(this.selectbox_filter_key());
     }
 
+    selectbox_value_ex_userid_mute() {
+        return "ex_userid_mute";
+    }
     selectbox_value_ex_dispname_mute() {
         return "ex_dispname_mute";
     }
@@ -352,8 +422,9 @@ class Popup {
     is_selected_userid_mute() {
         return this.selectbox_filter().val() == "userid_mute";
     }
-    is_selected_username_mute() {
-        return this.selectbox_filter().val() == "username_mute";
+    is_selected_ex_userid_mute() {
+        return this.selectbox_filter().val() == 
+               this.selectbox_value_ex_userid_mute();
     }
     is_selected_dispname_mute() {
         return this.selectbox_filter().val() == "dispname_mute";
@@ -372,6 +443,9 @@ class Popup {
         return this.selectbox_filter().val() == 
                this.selectbox_value_post_rt_notation();
     }
+    is_selected_tg_comment_user_mute() {
+        return this.selectbox_filter().val() == "tg_comment_user_mute";
+    }
     is_selected_option() {
         return this.selectbox_filter().val() == "option";
     }
@@ -380,8 +454,8 @@ class Popup {
         this.hide_textarea_all();
         if (this.is_selected_userid_mute()) {
             this.textarea_userid_mute().show();
-        } else if (this.is_selected_username_mute()) {
-            this.textarea_username_mute().show();
+        } else if (this.is_selected_ex_userid_mute()) {
+            this.textarea_userid_mute_ex_word().show();
         } else if (this.is_selected_dispname_mute()) {
             this.textarea_dispname_mute().show();
         } else if (this.is_selected_ex_dispname_mute()) {
@@ -389,9 +463,11 @@ class Popup {
         } else if (this.is_selected_word_mute()) {
             this.textarea_word_mute().show();
         } else if (this.is_selected_post_rt_setting()) {
-            this.textarea_post_rt_setting_username().show();
+            this.textarea_post_rt_setting_userid().show();
         } else if (this.is_selected_post_rt_notation()) {
             this.textarea_post_rt_notation().show();
+        } else if (this.is_selected_tg_comment_user_mute()) {
+            this.textarea_tg_comment_user_mute().show();
         } else if (this.is_selected_option()) {
             this.show_option();
         }
@@ -402,30 +478,35 @@ class Popup {
     }
     button_save_click() {
         this.storage.clear();
+        if (this.ex_userid_mute_last != '') {
+            this.ex_userid_mute_buffer_to_reflect_current(this.ex_useride_mute_last);
+        }
         if (this.ex_dispname_mute_last != '') {
             this.ex_dispname_mute_buffer_to_reflect_current(this.ex_dispname_mute_last);
         }
-        if (this.post_rt_username_last != '') {
-            this.post_rt_notation_buffer_to_reflect_current(this.post_rt_username_last);
+        if (this.post_rt_userid_last != '') {
+            this.post_rt_notation_buffer_to_reflect_current(this.post_rt_userid_last);
         }
         //
         {
             const filter
                 = TextUtil.split_by_new_line(this.textarea_userid_mute().val());
-            for (const userid of filter) {
-                const ui = TextUtil.remove_new_line_and_space(userid);
-                if (ui != "") {
-                    this.storage.json.userid_mute.push(ui);
-                }
-            }
-        }
-        {
-            const filter
-                = TextUtil.split_by_new_line(this.textarea_username_mute().val());
-            for (const username of filter) {
-                const un = TextUtil.remove_new_line_and_space(username);
-                if (un != "") {
-                    this.storage.json.username_mute.push(un);
+            for (const keyword of filter) {
+                const kw = TextUtil.remove_new_line_and_space(keyword);
+                if (kw != "") {
+                    const sp = kw.split('/');
+                    const userid = sp[0];
+                    var json_obj = {};
+                    json_obj.userid = userid;
+                    json_obj.username = (sp.length == 2) ?sp[1]: '';
+                    if (userid in this.ex_userid_mute_buffer) {
+                        json_obj.words = 
+                            TextUtil.split_by_new_line(
+                                this.ex_userid_mute_buffer[userid]);
+                    } else {
+                        json_obj.words = [];
+                    }
+                    this.storage.json.userid_mute.push(json_obj);
                 }
             }
         }
@@ -460,15 +541,19 @@ class Popup {
         {
             const filter
                 = TextUtil.split_by_new_line(
-                    this.textarea_post_rt_setting_username().val());
-            for (const username of filter) {
-                if (username != "") {
+                    this.textarea_post_rt_setting_userid().val());
+            for (const keyword of filter) {
+                const kw = TextUtil.remove_new_line_and_space(keyword);
+                if (kw != "") {
+                    const sp = kw.split('/');
+                    const userid = sp[0];
                     var json_obj = {};
-                    json_obj.username = username;
-                    if (username in this.post_rt_notation_buffer) {
+                    json_obj.userid = userid;
+                    json_obj.username = (sp.length == 2)?sp[1] :'';
+                    if (userid in this.post_rt_notation_buffer) {
                         json_obj.notations = 
                             TextUtil.split_by_new_line(
-                                this.post_rt_notation_buffer[username]);
+                                this.post_rt_notation_buffer[userid]);
                     } else {
                         json_obj.notations = [];
                     }
@@ -477,6 +562,16 @@ class Popup {
                 }
             }
         }
+        {
+            const filter
+                = TextUtil.split_by_new_line(this.textarea_tg_comment_user_mute().val());
+            for (const username of filter) {
+                if (username != "") {
+                    this.storage.json.tg_comment_user_mute.push(username);
+                }
+            }
+        }
+
         //
         this.storage.json.active = this.checkbox_sw_filter().prop("checked");
         this.storage.json.option.off_login = this.checkbox_off_login().prop("checked");
@@ -511,11 +606,22 @@ class Popup {
 
     updateTextarea() {
         this.textarea_userid_mute().val(this.storage.userid_mute_text);
-        this.textarea_username_mute().val(this.storage.username_mute_text);
         this.textarea_dispname_mute().val(this.storage.dispname_mute_text);
         this.textarea_word_mute().val(this.storage.word_mute_text);
-        this.textarea_post_rt_setting_username().val(
-            this.storage.post_rt_setting_username_text);
+        this.textarea_post_rt_setting_userid().val(
+            this.storage.post_rt_setting_userid_text);
+        this.textarea_tg_comment_user_mute().val(this.storage.tg_comment_user_mute_text);
+        //
+        const NLC = TextUtil.new_line_code();
+        //
+        this.ex_userid_mute_buffer = [];
+        for (const uim of this.storage.json.userid_mute) {
+            var words = "";
+            for (const word of uim.words) {
+                words += word + NLC;
+            }
+            this.ex_userid_mute_buffer[uim.userid] = words;
+        }
         //
         this.ex_dispname_mute_buffer = [];
         for (const dnm of this.storage.json.dispname_mute) {
@@ -524,19 +630,26 @@ class Popup {
                                         dnm.b_normalize);
         }
         //
-        const NLC = TextUtil.new_line_code();
         this.post_rt_notation_buffer = [];
         for (const prts of this.storage.json.post_rt_setting) {
             var notations = "";
             for (const notaion of prts.notations) {
                 notations += notaion + NLC;
             }
-            this.post_rt_notation_buffer[prts.username] = notations;
+            this.post_rt_notation_buffer[prts.userid] = notations;
         }
     }
 
     /*!
      *  @brief  現状を「表示名ミュート詳細設定」バッファへ反映する
+     *  @param  userid  ユーザID(key)
+     */
+    ex_userid_mute_buffer_to_reflect_current(userid) {
+        this.ex_userid_mute_buffer[userid] = this.textarea_userid_mute_ex_word().val();
+    }
+    /*!
+     *  @brief  現状を「表示名ミュート詳細設定」バッファへ反映する
+     *  @param  dispname    表示名(key)
      */
     ex_dispname_mute_buffer_to_reflect_current(dispname) {
         this.ex_dispname_mute_buffer[dispname]
@@ -546,8 +659,8 @@ class Popup {
     /*!
      *  @brief  現状を「RT後ツイート記法」バッファへ反映する
      */
-    post_rt_notation_buffer_to_reflect_current(username) {
-        this.post_rt_notation_buffer[username] = this.textarea_post_rt_notation().val();
+    post_rt_notation_buffer_to_reflect_current(userid) {
+        this.post_rt_notation_buffer[userid] = this.textarea_post_rt_notation().val();
     }
 
     /*!
@@ -557,8 +670,12 @@ class Popup {
         chrome.tabs.query({}, (tabs)=> {
             for (const tab of tabs) {
                 const url = new urlWrapper(tab.url);
-                if (url.in_twitter()) {
-                    chrome.tabs.sendMessage(tab.id, message, ()=> {});
+                if (url.in_twitter_user_page()  ||
+                    url.in_twitter_tw_thread()  ||
+                    url.in_twitter_search()     ||
+                    url.in_togetter_content()   ||
+                    url.in_yahoo_realtime_search_result()) {
+                    chrome.tabs.sendMessage(tab.id, message);
                 }
             }
         });

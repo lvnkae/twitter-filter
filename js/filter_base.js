@@ -12,6 +12,7 @@ class FilterBase {
         this.fixed_filter = new fixedFilter();
         this.short_url_decoder = new ShortUrlDecoder();
         this.tw_profile_accessor = new TwProfileAccessor();
+        this.tw_profile_image_accessor = new TwProfileImageAccessor();
         //
         this.current_location = new urlWrapper(location.href);
         this.after_domloaded_observer = null;
@@ -103,69 +104,47 @@ class FilterBase {
 
     /*!
      *  @brief  tweetフィルタ
-     *  @param  dispname        表示名
-     *  @param  username        ユーザ名
-     *  @param  tweet           ツイート本文
-     *  @param  rep_usernames   リプライ対象ユーザ名
+     *  @param  userid      ユーザID
+     *  @param  dispname    表示名
+     *  @param  tweet       ツイート本文
+     *  @param  rep_userid  リプライ対象ユーザID
      *  @retval true    当該tweetはミュート対象だ
      */
-    filtering_tweet(dispname, username, tweet, rep_usernames) {
-        if (this.storage.username_mute(username)||
-            this.storage.dispname_mute(dispname)||
-            this.storage.word_mute(tweet)       ||
-            this.storage.usernames_mute(rep_usernames)) {
+    filtering_tweet(userid, dispname, tweet, rep_userids) {
+        if (this.storage.userid_mute(userid)        ||
+            this.storage.dispname_mute(dispname)    ||
+            this.storage.word_mute(tweet, userid)  ||
+            this.storage.userids_mute(rep_userids)) {
             return true;
         }
         if (!this.storage.json.option.annoying_mute) {
             return false;
         }
-        return this.fixed_filter.filter(username,
-                                        rep_usernames,
+        return this.fixed_filter.filter(userid,
+                                        rep_userids,
                                         tweet);
     }
 
     /*!
-     *  @brief  tweetフィルタ(fullパラメータ)
-     *  @param  dispname        表示名
-     *  @param  username        ユーザ名
-     *  @param  userid          ユーザID
-     *  @param  tweet           ツイート本文
-     *  @param  rep_usernames   リプライ対象ユーザ名
-     *  @retval true    当該tweetはミュート対象だ
-     */
-    filtering_tweet_info(tw_info) {
-        if (this.storage.userid_mute(tw_info.userid)    ||
-            this.storage.username_mute(tw_info.username)||
-            this.storage.dispname_mute(tw_info.dispname)||
-            this.storage.word_mute(tw_info.tweet)       ||
-            this.storage.usernames_mute(tw_info.rep_usernames)) {
-            return true;
-        }
-        if (!this.storage.json.option.annoying_mute) {
-            return false;
-        }
-        return this.fixed_filter.filter(tw_info.username,
-                                        tw_info.rep_usernames,
-                                        tw_info.tweet);
-    }
-    
-    /*!
      *  @brief  tweetフィルタ(html形式)
      *  @param  tweet_html  twitter.comから得られるtweet詳細jsonのtweet_html
      *  @param  id          短縮URL展開処理にわたす識別情報
-     *  @retval true    ミュート対象だ
+     *  @retval true    当該tweetはミュート対象だ
      *  @note   ミュートされない場合は短縮URL展開要求登録まで行う
      */
     tweet_html_filter(tweet_html, id) {
         var tw_info = TwitterUtil.get_tweet_info_from_html(tweet_html);
-        if (this.filtering_tweet_info(tw_info)) {
+        if (this.filtering_tweet(tw_info.userid,
+                                 tw_info.dispname,
+                                 tw_info.tweet,
+                                 tw_info.rep_users)) {
             return true;
         }
         var short_urls = [];
         urlWrapper.select_short_url(short_urls, tw_info.link_urls);
         if (short_urls.length > 0) {
             if (this.short_url_decoder.filter(short_urls,
-                                              this.url_filter.bind(this))) {
+                                              this.filtering_word.bind(this))) {
                 return true;
             }
             this.short_url_decoder.entry(short_urls, id);
@@ -173,19 +152,38 @@ class FilterBase {
     }
 
     /*!
-     *  @brief  Twitterプロフィールフィルタ
-     *  @param  profile プロフィール
-     *  @retval true    ミュート対象だ
+     *  @brief  togetterコメントフィルタ
+     *  @param  username        ユーザ名
+     *  @param  comment         コメント
+     *  @param  rep_usernames   リプライ対象ユーザ名
+     *  @retval true    当該コメントはミュート対象だ
      */
-    filtering_tw_profile(profile) {
-        if (this.storage.userid_mute(profile.userid) ||
-            this.storage.username_mute(profile.last_username)) {
+    filtering_togetter_comment(username, comment, rep_usernames) {
+        if (this.storage.togetter_userame_mute(username)||
+            this.storage.word_mute(comment)  ||
+            this.storage.togetter_usernames_mute(rep_usernames)) {
             return true;
         }
         if (!this.storage.json.option.annoying_mute) {
             return false;
         }
-        return this.fixed_filter.filter_username(profile.last_username);
+        return this.fixed_filter.filter('', [], comment);
+    }
+
+
+    /*!
+     *  @brief  TwitterユーザIDフィルタ
+     *  @param  userid  ユーザID
+     *  @retval true    ミュート対象だ
+     */
+    filtering_tw_userid(userid) {
+        if (this.storage.userid_mute(userid)) {
+            return true;
+        }
+        if (!this.storage.json.option.annoying_mute) {
+            return false;
+        }
+        return this.fixed_filter.filter_userid(userid);
     }
     /*!
      *  @brief  Twitter表示名フィルタ
@@ -196,48 +194,32 @@ class FilterBase {
         return this.storage.dispname_mute(dispname);
     }
     /*!
-     *  @brief  Twitter名前フィルタ
-     *  @param  dispname    表示名
-     *  @param  username    ユーザ名
-     *  @retval true    ミュート対象だ
-     */
-    filtering_tw_name(dispname, username) {
-        if (this.storage.username_mute(username)||
-            this.filtering_tw_dispname(dispname)) {
-            return true;
-        }
-        if (!this.storage.json.option.annoying_mute) {
-            return false;
-        }
-        return this.fixed_filter.filter_username(username);
-    }
-    /*!
      *  @brief  Twitterアカウントフィルタ
      *  @param  dispname    表示名
-     *  @param  username    ユーザ名
      *  @param  userid      ユーザID
      *  @retval true    ミュート対象だ
      */
-    filtering_tw_account(dispname, username, userid) {
-        if (this.storage.userid_mute(userid)) {
-            return true;
-        }
-        return this.filtering_tw_name(dispname, username);
+    filtering_tw_account(userid, dispname) {
+        return this.filtering_tw_userid(userid) ||
+               this.filtering_tw_dispname(dispname);
     }
 
     /*!
-     *  @brief  URLフィルタ
+     *  @brief  ワードフィルタ
+     *  @param  text    テキスト
+     *  @param  userid  ユーザID
      *  @retval true    ミュート対象だ
      */
-    url_filter(url) {
-        if (this.storage.word_mute(url)) {
+    filtering_word(text, userid) {
+        if (this.storage.word_mute(text, userid)) {
             return true;
         }
         if (!this.storage.json.option.annoying_mute) {
             return false;
         }
-        return this.fixed_filter.filter('', [], url);
+        return this.fixed_filter.filter('', [], text);
     }
+
 
     /*!
      *  @brief  フィルタリング
@@ -258,5 +240,10 @@ class FilterBase {
      *  @brief  Twiterプロフィール取得通知
      *  @note   仮想関数的な感じで
      */
-    tell_get_tw_profile(result, userid, username, json) {}
+    tell_get_tw_profile(result, userid, username, image_id, json) {}
+    /*!
+     *  @brief  Twiterプロフィール画像URL取得通知
+     *  @note   仮想関数的な感じで
+     */
+    tell_get_tw_profile_image(result, image_url, username){}
 }

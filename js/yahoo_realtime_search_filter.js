@@ -31,11 +31,10 @@ class YahooRealtimeSearchFilter extends FilterBase {
 
     /*!
      *  @brief  tweetを得る
-     *  @param[in]  parent          親ノード
-     *  @param[out] rep_usernames   返信ユーザ群(格納先)
-     *  @param[out] link_url        リンクアドレス群(格納先)
+     *  @param[in]  parent      親ノード
+     *  @param[out] link_url    リンクアドレス群(格納先)
      */
-    get_tweet(parent, rep_usernames, link_url) {
+    get_tweet(parent, link_url) {
         var tw = null;
         $(parent).children().each((inx, ch)=> {
             if (ch.nodeName == 'H2') {
@@ -63,16 +62,15 @@ class YahooRealtimeSearchFilter extends FilterBase {
                         }
                     } else if (ch.className == '') {
                         if ($(ch).attr("target") != null) {
-                            rep_usernames.push(link.replace('@', ''));
+                            // 非公式reply
+                            // usernameだけではミュートできないのでスルー
                         }
                     }
                     tweet += link;
                 } else
-                if (ch.nodeName == 'SPAN') {
-                    if (ch.className == 'rep') {
-                        const repuser = $($(ch).find("a")).text();
-                        rep_usernames.push(repuser.replace('@', ''));
-                    }
+                if (ch.nodeName == 'SPAN' && ch.className == 'rep') {
+                    // 公式reply
+                    // usernameだけではミュートできないのでスルー
                 }
             }
         }
@@ -104,12 +102,10 @@ class YahooRealtimeSearchFilter extends FilterBase {
             if (refname.length == 0 || nam.length == 0) {
                 return true;
             }
-            var rep_usernames = [];
             var link_url = [];
             const dispname = $(refname).text();
-            const username = $(nam).text().replace('@', '');
-            const tweet = this.get_tweet(data, rep_usernames, link_url);
-            if (super.filtering_tweet(dispname, username, tweet, rep_usernames)) {
+            const tweet = this.get_tweet(data, link_url);
+            if (super.filtering_tw_dispname(dispname) || super.filtering_word(tweet)) {
                 $(data).detach();
                 return true;
             }
@@ -118,15 +114,16 @@ class YahooRealtimeSearchFilter extends FilterBase {
             urlWrapper.select_short_url(short_urls, link_url);
             if (short_urls.length > 0) {
                 if (this.short_url_decoder.filter(short_urls,
-                                                  super.url_filter.bind(this))) {
+                                                  super.filtering_word.bind(this))) {
                     $(data).detach();
                     return true;
                 }
                 this.short_url_decoder.entry(short_urls, ret.unique_id);
             }
             // tweet詳細を得る(bgへ移譲)
-            if ($(data).attr("tweet-item-id") == null) {
-                MessageUtil.send_message({command:"get_tweet",
+            if ($(data).attr("used-tweet") == null) {
+                $(data).attr("used-tweet", "");
+                MessageUtil.send_message({command: "get_tweet",
                                           middle_id: ret.unique_id,
                                           middle_url: ret.middle_url});
             }
@@ -154,7 +151,7 @@ class YahooRealtimeSearchFilter extends FilterBase {
      *  @note   短縮URL展開結果受信処理からの呼び出し用
      */
     filtering_search_result_from_id(obj) {
-        if (!super.url_filter(obj.url)) {
+        if (!super.filtering_word(obj.url)) {
             return;
         }
         this.search_result_each((data)=> {

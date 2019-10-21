@@ -4,22 +4,23 @@
 class TwProfileAccessor {
 
     constructor() {
-        this.profile_map = [];
+        this.image_id_map = [];
     }
 
     /*!
      *  @brief  ユーザ名登録
-     *  @param  username    ユーザ名
+     *  @param  key_obj 登録キーオブジェクト
      */
-    entry(username) {
-        if (username in this.profile_map) {
+    entry(key_obj) {
+        if (key_obj.image_id in this.image_id_map) {
             return;
         } else {
             // 新規登録
             var obj = {};
-            obj.username = username;
+            obj.username = key_obj.username;
+            obj.image_id = key_obj.image_id;
             obj.busy = false;
-            this.profile_map[username] = obj;
+            this.image_id_map[key_obj.image_id] = obj;
         }
     }
 
@@ -28,12 +29,14 @@ class TwProfileAccessor {
      *  @note   未処理のリクエストを処理する
      */
     publish_request() {
-        for (const key in this.profile_map) {
-            const obj = this.profile_map[key];
+        for (const key in this.image_id_map) {
+            const obj = this.image_id_map[key];
             if (!obj.busy && obj.userid == null) {
                 obj.busy = true;
                 // content_script内で他domainへアクセスするとCORBされるためbgへ移譲
-                MessageUtil.send_message({command:"get_tw_profile", username: key});
+                MessageUtil.send_message({command:"get_tw_profile",
+                                          username: obj.username,
+                                          image_id: obj.image_id});
             }
         }
     }
@@ -42,45 +45,48 @@ class TwProfileAccessor {
      *  @brief  プロフィール取得完了通知
      *  @param  userid      ユーザID
      *  @param  username    ユーザ名
+     *  @param  local_id    プロフィール画像ID(local)
      *  @param  filter_func フィルタ関数
      */
-    tell_gotten(userid, username, filter_func) {
-        if (username in this.profile_map) {
-            var obj = this.profile_map[username];
-            obj.userid = userid;
-            obj.last_username = username;
-            obj.busy = false;
-            filter_func(obj);
+    tell_gotten(userid, username, local_id, filter_func) {
+        if (local_id in this.image_id_map) {
+            var obj = this.image_id_map[local_id];
+            if (obj.username == username) {
+                obj.userid = userid;
+                obj.busy = false;
+                filter_func(obj);
+            }
         }
     }
 
     /*!
      *  @brief  プロフィール取得完了通知
      *  @param  json        tweet詳細(json)
-     *  @param  username    ユーザ名
+     *  @param  local_id    プロフィール画像ID(local)
      *  @param  filter_func フィルタ関数
-     *  @note   ユーザ名から取得できず、tweet_idでの再取得が成功した場合に使用
      */
-    tell_gotten_retry(json, username, filter_func) {
-        if (username in this.profile_map) {
-            var obj = this.profile_map[username];
-            const tw_info = TwitterUtil.get_tweet_info_from_html(json.tweet_html);
-            obj.userid = tw_info.userid;
-            obj.last_username = tw_info.username; // 最新のusername
-            obj.busy = false;
-            filter_func(obj);
-        }
+    tell_gotten_from_tweet_id(json, local_id, filter_func) {
+        const tw_info = TwitterUtil.get_tweet_info_from_html(json.tweet_html);
+        var obj = {};
+        obj.userid = tw_info.userid;
+        obj.username = tw_info.username; // 最新のusername
+        obj.img_id = local_id;
+        this.image_id_map[local_id] = obj;
+        filter_func(obj);
     }
 
     /*!
-     *  @brief  プロフィール取得
+     *  @brief  ユーザID取得
+     *  @param  local_id    プロフィール画像ID(local)
      *  @note   取得済み(キャッシュ)を得る
      */
-    get_profile(username) {
-        if (username in this.profile_map) {
-            const obj = this.profile_map[username];
+    get_userid(local_id) {
+        if (local_id in this.image_id_map) {
+            const obj = this.image_id_map[local_id];
             if (obj.userid != null) {
-                return obj;
+                return obj.userid;
+            } else {
+                return null;
             }
         }
         return null;

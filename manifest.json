@@ -7,6 +7,7 @@
                    "js/bg_short_url_decoder.js",
                    "js/bg_tweet_accessor.js",
                    "js/bg_tw_profile_accessor.js",
+                   "js/bg_tw_profile_image_accessor.js",
                    "js/background.js" ]
    },
    "browser_action": {
@@ -27,6 +28,7 @@
               "js/twitter_utility.js",
               "js/short_url_decoder.js",
               "js/tw_profile_accessor.js",
+              "js/tw_profile_image_accessor.js",
               "js/filter_base.js",
               "js/togetter_filter.js",
               "js/twitter_filter.js",

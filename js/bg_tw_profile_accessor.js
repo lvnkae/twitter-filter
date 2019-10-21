@@ -7,10 +7,6 @@ class BGTwProfileAccessor extends BGMessageSender {
     constructor() {
         super();
         //
-        this.reply_queue = {full:false, queue:[]};
-        this.wait_queue = [];
-        this.http_request_timer = null;
-        //
         this.wait_queue_from_tweet_id = [];
         this.http_request_timer_from_tweet_id = null;
     }
@@ -19,92 +15,15 @@ class BGTwProfileAccessor extends BGMessageSender {
         return "get_tw_profile";
     }
 
-    static entry_queue(queue, username) {
-        if (queue.full) {
-            return false;
-        }
-        const MAX_HTTPREQUEST_PALLAREL = 8;
-        queue.queue[username] = null;
-        if (Object.keys(queue.queue).length == MAX_HTTPREQUEST_PALLAREL) {
-            queue.full = true;
-        }
-        return true;
-    }
-
-    remove_reply_queue(username) {
-        delete this.reply_queue.queue[username];
-    }
-
-    entry_wait_queue(username) {
-        for (var inx = 0; inx < this.wait_queue.length; inx++) {
-            if (BGTwProfileAccessor.entry_queue(this.wait_queue[inx], username)) {
-                return;
-            }
-        }
-        var obj = {};
-        obj.full = false;
-        obj.queue = [];
-        obj.queue[username] = null;
-        this.wait_queue.push(obj);
-    }
-
-    can_http_request(username) {
-        // 既にキューに積まれてる？ → request不要
-        if (username in this.reply_queue) {
-            return false;
-        }
-        for (var queue of this.wait_queue) {
-            if (username in queue.queue) {
-                return false;
-            }
-        }
-        // 即時request可？
-        if (BGTwProfileAccessor.entry_queue(this.reply_queue, username)) {
-            return true;
-        }
-        //
-        this.entry_wait_queue(username);
-        return false;
-    }
-
-    update_reply_queue(username) {
-        this.remove_reply_queue(username);
-        // 応答待ちキューが空になったか？
-        if (Object.keys(this.reply_queue.queue).length > 0) {
-            // 残あり
-            return;
-        } else {
-            if (this.wait_queue.length == 0) {
-                // 空になったが待機キューがない
-                this.reply_queue.full = false;
-                return;
-            }
-        }
-        // 待機キューの引き上げ
-        this.reply_queue = this.wait_queue[0];
-        const ow_queue = this.wait_queue;
-        this.wait_queue = [];
-        for (var inx = 1; inx < ow_queue.length; inx++) {
-            this.wait_queue.push(ow_queue[inx]);
-        }
-        // http_request発射
-        this.http_request_timer = setTimeout(()=> {
-            for (const username in this.reply_queue.queue) {
-                this.request_tw_profile(username);
-            }
-            clearTimeout(this.http_request_timer);
-            this.http_request_timer = null;
-        }, 200); /* ウェイト入れてみる*/
-    }
-
     /*!
      *  @brief  TwitterプロフィールをJSONで得る
      *  @param  username    ユーザ名
+     *  @param  image_id    プロフィール画像ID
      *  @note   twiterではuseridをkeyにprofileを得る使われ方がメインだが
      *  @note   本extentionでは欠損しているuseridを得るために使用するため
      *  @note   usernameをkeyとする
      */
-    request_tw_profile(username) {
+    request_tw_profile(username, image_id) {
         const tw_url = 'https://twitter.com/i/profiles/popup?screen_name=';
         fetch(tw_url + username, {
             method: "GET",
@@ -118,40 +37,47 @@ class BGTwProfileAccessor extends BGMessageSender {
                     return response.json();
                 } else {
                     // error(連続アクセスしすぎ?) → リトライ
-                    this.entry_wait_queue(username);
-                    this.update_reply_queue(username);
+                    super.entry_wait_queue(username, image_id);
+                    super.update_reply_queue(username,
+                                             this.request_tw_profile.bind(this));
                 }
             } else
             if (response.status == 404) {
                 // not found → ユーザ名変更またはアカウント削除
-                this.update_reply_queue(username);
+                super.update_reply_queue(username,
+                                         this.request_tw_profile.bind(this));
                 this.send_reply({command: BGTwProfileAccessor.command(),
                                  result: "not_found",
-                                 username: username});
+                                 username: username,
+                                 image_id: image_id});
             } else
             if (response.status == 0 &&response.type == 'opaqueredirect') {
                 // redirect → 凍結
-                this.update_reply_queue(username);
+                super.update_reply_queue(username,
+                                         this.request_tw_profile.bind(this));
                 this.send_reply({command: BGTwProfileAccessor.command(),
                                  result: "suspended",
-                                 userid: 'suspended',
-                                 username: username});
+                                 username: username,
+                                 image_id: image_id});
             }
         })
         .then(json => {
             if (json != null) {
-                this.update_reply_queue(username);
+                super.update_reply_queue(username,
+                                         this.request_tw_profile.bind(this));
                 this.send_reply({command: BGTwProfileAccessor.command(),
                                  result: "success",
                                  userid: json.user_id,
-                                 username: username});
+                                 username: username,
+                                 image_id: image_id});
             }
         })
         .catch(err => {
             // [error]fetchエラー
             this.send_reply({command: BGTwProfileAccessor.command(),
                              result: "fail",
-                             username: username});
+                             username: username,
+                             image_id: image_id});
         });
     }
 
@@ -161,14 +87,14 @@ class BGTwProfileAccessor extends BGMessageSender {
     request_tw_profile_from_tweet_id_delay() {
         this.http_request_timer_from_tweet_id = setTimeout(()=> {
             var top = this.wait_queue_from_tweet_id[0];
-            this.requet_tw_profile_from_tweet_id(top.username, top.tweet_id.shift());
+            this.requet_tw_profile_from_tweet_id(top.image_id, top.tweet_id.shift());
             clearTimeout(this.http_request_timer_from_tweet_id);
             this.http_request_timer_from_tweet_id = null;
         });
     }
 
     /*!
-     *  @brief  同一usernameの次tweet_idで問い合わせる
+     *  @brief  同一image_idの次tweet_idで問い合わせる
      */
     request_tw_profile_from_tweet_id_next() {
         const top = this.wait_queue_from_tweet_id[0];
@@ -181,7 +107,7 @@ class BGTwProfileAccessor extends BGMessageSender {
     }
 
     /*!
-     *  @brief  現在扱ってるusernameを破棄して次へ
+     *  @brief  現在扱ってるimage_idを破棄して次へ
      */
     update_queue_from_tweet_id() {
         const rmv_top = this.wait_queue_from_tweet_id.shift();
@@ -193,10 +119,10 @@ class BGTwProfileAccessor extends BGMessageSender {
 
     /*!
      *  @brief  TwitterプロフィールをJSONで得る(tweet経由)
-     *  @param  username    ユーザ名
+     *  @param  image_id    プロフィール画像ID
      *  @param  tweet_id    tweet_id群
      */
-    requet_tw_profile_from_tweet_id(username, tweet_id) {
+    requet_tw_profile_from_tweet_id(image_id, tweet_id) {
         const tw_url = 'https://twitter.com/i/tweet/stickersHtml?id=';
         fetch(tw_url + tweet_id, {
             method: "GET",
@@ -207,18 +133,19 @@ class BGTwProfileAccessor extends BGMessageSender {
             if (response.status == 200) {
                 const content_type = response.headers.get('content-type');
                 if (content_type.indexOf('application/json') >= 0) {
+                    return response.json();
                 } else {
                     console.log(content_type);
                 }
-                return response.json();
             } else {
                 if (response.status == 403) {
                     // not found → 削除済みツイート
                     if (!this.request_tw_profile_from_tweet_id_next()) {
                         // 全tweet_idで問い合わせたがダメだった
                         this.send_reply({command: BGTwProfileAccessor.command(),
-                                         result: "retry_not_found",
-                                         username: username});
+                                         result: "tweet_id_not_found",
+                                         image_id: image_id});
+                        this.update_queue_from_tweet_id();
                     }
                 } else {
                     console.log(response.status);
@@ -227,18 +154,18 @@ class BGTwProfileAccessor extends BGMessageSender {
         })
         .then(json => {
             if (json != null) {
-                this.update_queue_from_tweet_id();
                 this.send_reply({command: BGTwProfileAccessor.command(),
-                                 result: "retry_success",
+                                 result: "tweet_id_success",
                                  json: json,
-                                 username: username});
+                                 image_id: image_id});
+                this.update_queue_from_tweet_id();
             }
         })
         .catch(err => {
             // [error]fetchエラー
             this.send_reply({command: BGTwProfileAccessor.command(),
-                             result: "retry_fail",
-                             username: username});
+                             result: "tweet_id_fail",
+                             image_id: image_id});
         });
     }
 
@@ -247,20 +174,22 @@ class BGTwProfileAccessor extends BGMessageSender {
      *  @param  request
      */
     on_message(request) {
-        const username = request.username;
         if (request.tweet_id == null) {
-            if (!this.can_http_request(username)) {
+            const username = request.username;
+            const image_id = request.image_id;
+            if (!super.can_http_request(username, image_id)) {
                 return;
             }
-            this.request_tw_profile(username);
+            this.request_tw_profile(username, image_id);
         } else {
             const b_empty = this.wait_queue_from_tweet_id.length == 0;
-            this.wait_queue_from_tweet_id.push({username: username,
+            this.wait_queue_from_tweet_id.push({image_id: request.image_id,
                                                 tweet_id: request.tweet_id});
             if (!b_empty) {
                 return;
             }
-            this.requet_tw_profile_from_tweet_id(username, request.tweet_id.shift());
+            this.requet_tw_profile_from_tweet_id(request.image_id,
+                                                 request.tweet_id.shift());
         }
     }
 }

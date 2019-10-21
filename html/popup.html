@@ -17,19 +17,20 @@
             <input name="sw_filter" type="checkbox">フィルタを有効にする</input><br>
 
             <select name="select_filter">
+                <option value="userid_mute">ユーザIDミュート</option>
                 <option value="dispname_mute">表示名ミュート</option>
-                <option value="username_mute">ユーザ名ミュート</option>
-                <option value="userid_mute"> ユーザIDミュート</option>
                 <option value="word_mute">ワードミュート</option>
                 <option value="post_rt_setting">RT後ツイート設定</option>
+                <option value="tg_comment_user_mute">togetterコメントミュート</option>
                 <option value="option">オプション</option>
             </select>
-            <p><textarea name="dispname_mute" class="form-control" rows="8" cols="40"></textarea></p>
-            <p><textarea name="username_mute" class="form-control" rows="8" cols="40" style="display:none"></textarea></p>
-            <p><textarea name="userid_mute" class="form-control" rows="8" cols="40" style="display:none"></textarea></p>
+            <p><textarea name="userid_mute" class="form-control" rows="8" cols="40"></textarea></p>
+            <p><textarea name="userid_mute_ex_word" class="form-control" rows="8" cols="40" style="display:none"></textarea></p>
+            <p><textarea name="dispname_mute" class="form-control" rows="8" cols="40" style="display:none"></textarea></p>
             <p><textarea name="word_mute" class="form-control" rows="8" cols="40" style="display:none"></textarea></p>
-            <p><textarea name="post_rt_setting_username" class="form-control" rows="8" cols="40" style="display:none"></textarea></p>
+            <p><textarea name="post_rt_setting_userid" class="form-control" rows="8" cols="40" style="display:none"></textarea></p>
             <p><textarea name="post_rt_notation" class="form-control" rows="8" cols="40" style="display:none"></textarea></p>
+            <p><textarea name="tg_comment_user_mute" class="form-control" rows="8" cols="40" style="display:none"></textarea></p>
             <input id="perfectmatch" type="checkbox" style="display:none">
             <label id="perfectmatch" for="perfectmatch" style="display:none">完全一致</label>
             <input id="normalize" type="checkbox" style="display:none">

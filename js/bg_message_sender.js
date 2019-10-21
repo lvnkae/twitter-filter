@@ -6,9 +6,14 @@ class BGMessageSender {
     //
     constructor() {
         this.connected_tab = [];
+        //
         this.delay_send_timer = null;
         this.delay_message = [];
         this.my_request = [];
+        //
+        this.reply_queue = {full:false, queue:[]};
+        this.wait_queue = [];
+        this.http_request_timer = null;
     }
 
     /*!
@@ -69,4 +74,108 @@ class BGMessageSender {
     release_request(requestId) {
         delete this.my_request[requestId];
     }
-}
+
+
+    /*!
+     *  @brief  queueにkeyを登録する
+     *  @param[dst] queue   登録先
+     *  @param[in]  key     登録キー
+     *  @param[in]  fparam  フリーパラメータ
+     */
+    static entry_queue(queue, key, fparam) {
+        if (queue.full) {
+            return false;
+        }
+        const MAX_HTTPREQUEST_PALLAREL = 8;
+        queue.queue[key] = fparam;
+        if (Object.keys(queue.queue).length == MAX_HTTPREQUEST_PALLAREL) {
+            queue.full = true;
+        }
+        return true;
+    }
+
+    /*!
+     *  @brief  応答待ちキーから削除
+     *  @param  key 登録キー
+     */
+    remove_reply_queue(key) {
+        delete this.reply_queue.queue[key];
+    }
+
+    /*!
+     *  @brief  http_request発行待ちキューに積む
+     *  @param  key     登録キー
+     *  @param  fparam  フリーパラメータ
+     */
+    entry_wait_queue(key, fparam) {
+        for (var inx = 0; inx < this.wait_queue.length; inx++) {
+            if (BGMessageSender.entry_queue(this.wait_queue[inx], key, fparam)) {
+                return;
+            }
+        }
+        var obj = {};
+        obj.full = false;
+        obj.queue = [];
+        obj.queue[key] = fparam;
+        this.wait_queue.push(obj);
+    }
+
+    /*!
+     *  @brief  http_requestを発行して良いか
+     *  @param  key     登録キー
+     *  @param  fparam  フリーパラメータ
+     *  @retval true    発行してよし
+     */
+    can_http_request(key, fparam) {
+        // 既にキューに積まれてるか
+        if (key in this.reply_queue) {
+            // 応答待ちキューに積まれてる
+            return false;
+        }
+        for (var queue of this.wait_queue) {
+            if (key in queue.queue) {
+                // 発行待ちキューに積まれてる
+                return false;
+            }
+        }
+        // 即時request可？
+        if (BGMessageSender.entry_queue(this.reply_queue, key, fparam)) {
+            return true;
+        }
+        //
+        this.entry_wait_queue(key, fparam);
+        return false;
+    }
+
+    /*!
+     *  @brief  応答待ちキュー更新
+     *  @param  key                 登録キー
+     *  @param  http_request_func   http_request発行関数
+     */
+    update_reply_queue(key, http_request_func) {
+        this.remove_reply_queue(key);
+        if (Object.keys(this.reply_queue.queue).length > 0) {
+            return;
+        } else {
+            if (this.wait_queue.length == 0) {
+                this.reply_queue.full = false;
+                return;
+            }
+        }
+        // 応答待ちキューが空になったら待機キュー先頭を昇格する
+        this.reply_queue = this.wait_queue[0];
+        const prev_wait_queue = this.wait_queue;
+        this.wait_queue = [];
+        for (var inx = 1; inx < prev_wait_queue.length; inx++) {
+            this.wait_queue.push(prev_wait_queue[inx]);
+        }
+        // http_request発射
+        this.http_request_timer = setTimeout(()=> {
+            for (const key in this.reply_queue.queue) {
+                http_request_func(key, this.reply_queue.queue[key]);
+            }
+            clearTimeout(this.http_request_timer);
+            this.http_request_timer = null;
+        }, 200); /* ウェイト入れてみる*/
+    }
+ }

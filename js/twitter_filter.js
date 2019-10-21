@@ -4,33 +4,38 @@
 class TwitterFilter extends FilterBase {
 
     /*!
+     *  @brief  スレッド親発言者のユーザIDを得る
+     */
+    get_thread_author_userid() {
+        const p = $("div.tweet.permalink-tweet.js-actionable-user.js-actionable-tweet");
+        return $(p).attr("data-user-id");
+    }
+
+    /*!
      *  @brief  tweetフィルタ
-     *  @param  tw_info             ツイート情報
-     *  @param  exclude_username    ミュート対象外ユーザ名(スレッドの親発言者など)
+     *  @param  tw_info         ツイート情報
+     *  @param  exclude_userid  ミュート対象外ユーザ名(スレッドの親発言者など)
      *  @retval true    当該tweetがミュート対象だ
      */
-    filtering_tweet(tw_info, exclude_username) {
+    filtering_tweet(tw_info, exclude_userid) {
         if (tw_info.is_empty()) {
             return false;
         }
-        if (this.storage.userid_mute(tw_info.userid)) {
-            return true;
-        }
-        const rep_usernames
-            = FilterBase.exclusion(tw_info.rep_usernames, exclude_username);
-        return super.filtering_tweet(tw_info.dispname,
-                                     tw_info.username,
+        const rep_userids
+            = FilterBase.exclusion(tw_info.rep_users, exclude_userid);
+        return super.filtering_tweet(tw_info.userid,
+                                     tw_info.dispname,
                                      tw_info.tweet,
-                                     rep_usernames);
+                                     rep_userids);
     }
 
     /*!
      *  @brief  twitter-TLフィルタ
-     *  @param  parent              TLの親ノード
-     *  @param  tw_tag              ツイート本文のノードキー
-     *  @param  exclude_username    ミュート対象外ユーザ名
+     *  @param  parent          TLの親ノード
+     *  @param  tw_tag          ツイート本文のノードキー
+     *  @param  exclude_userid  ミュート対象外ユーザID
      */
-    filtering_twitter_timeline(parent, tw_tag, exclude_username) {
+    filtering_twitter_timeline(parent, tw_tag, exclude_userid) {
         $(parent).find("ol#stream-items-id").each((inx, elem)=> {
             $($(elem).find("li").get().reverse()).each((inx, tw)=> {
                 if (tw.className.indexOf("js-stream-item stream-item stream-item") < 0) {
@@ -38,13 +43,13 @@ class TwitterFilter extends FilterBase {
                 }
                 // ツイート
                 var tw_info = TwitterUtil.get_tweet_info(tw, tw_tag);
-                if (this.filtering_tweet(tw_info, exclude_username)) {
+                if (this.filtering_tweet(tw_info, exclude_userid)) {
                     $(tw).detach();
                     return;
                 }
                 // 引用RT
                 var qt_info = TwitterUtil.get_qwote_tweet_info(tw);
-                if (this.filtering_tweet(qt_info, exclude_username)) {
+                if (this.filtering_tweet(qt_info, exclude_userid)) {
                     $(tw).detach();
                     return;
                 }
@@ -53,7 +58,7 @@ class TwitterFilter extends FilterBase {
                 urlWrapper.select_short_url(short_urls, tw_info.link_urls);
                 urlWrapper.select_short_url(short_urls, qt_info.link_urls);
                 if (this.short_url_decoder.filter(short_urls,
-                                                  super.url_filter.bind(this))) {
+                                                  super.filtering_word.bind(this))) {
                     $(tw).detach();
                     return;
                 }
@@ -85,9 +90,8 @@ class TwitterFilter extends FilterBase {
                     return;
                 }
                 const userid   = $(user).attr("data-user-id");
-                const username = TwitterUtil.get_tw_username(user);
                 const dispname = $(ar_dispname[0]).text();
-                if (!super.filtering_tw_account(dispname, username, userid)) {
+                if (!super.filtering_tw_account(userid, dispname)) {
                     return;
                 }
                 // $(user)をdetachすると更新挙動が怪しくなるので内容物だけ消す
@@ -143,9 +147,8 @@ class TwitterFilter extends FilterBase {
     filtering_twitter_pict_search() {
         this.twitter_searching_pict_each((ch)=> {
             const userid   = $(ch).attr("data-user-id");
-            const username = $(ch).attr("data-screen-name");
             const dispname = $(ch).attr("data-name");
-            if (super.filtering_tw_account(dispname, username, userid)) {
+            if (super.filtering_tw_account(userid, dispname)) {
                 $(ch).detach();
                 return true;
             }
@@ -184,9 +187,8 @@ class TwitterFilter extends FilterBase {
                 return true;
             }
             const dispname = $(dn).text();
-            const username = $(user).attr("href").replace('/', '');
             const userid = $(user).attr("data-user-id");
-            if (super.filtering_tw_account(dispname, username, userid)) {
+            if (super.filtering_tw_account(userid, dispname)) {
                 $(parent).detach();
                 return true;
             }
@@ -194,8 +196,10 @@ class TwitterFilter extends FilterBase {
                 = $(parent).find("a.AdaptiveNewsLargeImageHeadline-title");
             const news_desc
                 = $(parent).find("a.AdaptiveNewsLargeImageHeadline-description");
-            if ((news_title.length != 0 && super.url_filter(news_title.text())) ||
-                (news_desc.length != 0 && super.url_filter(news_desc.text()))) {
+            if ((news_title.length != 0 &&
+                 super.filtering_word($(news_title).text(), userid)) ||
+                (news_desc.length != 0 &&
+                 super.filtering_word($(news_desc).text(), userid))) {
                 $(parent).detach();
                 return true;
             }
@@ -217,9 +221,8 @@ class TwitterFilter extends FilterBase {
             const DISPNAME_TAG
                 = "a.fullname.ProfileNameTruncated-link.u-textInheritColor";
             const userid   = $(prof).attr("data-user-id");
-            const username = TwitterUtil.get_tw_username(prof);
             const dispname = TwitterUtil.get_tw_dispname(prof, DISPNAME_TAG);
-            if (!super.filtering_tw_account(dispname, username, userid)) {
+            if (!super.filtering_tw_account(userid, dispname)) {
                 return;
             }
             $(prof).detach();
@@ -251,8 +254,9 @@ class TwitterFilter extends FilterBase {
             const tl_parent = $("div#descendants.ThreadedDescendants");
             const TWEET_TAG
                 = "p.TweetTextSize.js-tweet-text.tweet-text";
-            const exclude_username = loc.subdir[0]; // ThreadAuthorはミュート除外
-            this.filtering_twitter_timeline(tl_parent, TWEET_TAG, exclude_username);
+            // ThreadAuthorはミュート除外
+            const exclude_userid = this.get_thread_author_userid();
+            this.filtering_twitter_timeline(tl_parent, TWEET_TAG, exclude_userid);
         }
     }
 
@@ -262,7 +266,7 @@ class TwitterFilter extends FilterBase {
      *  @note   短縮URL展開結果受信処理からの呼び出し用
      */
     filtering_tweet_from_id(obj) {
-        if (!super.url_filter(obj.url)) {
+        if (!super.filtering_word(obj.url)) {
             return;
         }
         //

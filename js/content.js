@@ -32,7 +32,17 @@ class Content {
                         .tell_get_tw_profile(request.result,
                                              request.userid,
                                              request.username,
+                                             request.image_id,
                                              request.json);
+                    }
+                } else
+                if (request.command == "get_tw_profile_image") {
+                    if (this.filter_instance) {
+                        this
+                        .filter_instance
+                        .tell_get_tw_profile_image(request.result,
+                                                   request.image_url,
+                                                   request.username);
                     }
                 } else
                 if (request.command == "update-storage") {

@@ -5,10 +5,9 @@ class TweetInfo {
     constructor() {
         this.empty = true;
         this.userid = '';
-        this.username = '';
         this.dispname = '';
         this.tweet = '';
-        this.rep_usernames = [];
+        this.rep_users = [];
         this.link_urls = [];
     }
     is_empty() {
@@ -63,9 +62,8 @@ class TwitterUtil {
         }
         for (const ch of ar_tweet[0].childNodes) {
             if (ch.className == 'twitter-atreply pretty-link js-nav') {
-                var username = $(ch).text();
-                tw_info.tweet += username;
-                tw_info.rep_usernames.push(username.replace('@', ''));
+                tw_info.tweet += $(ch).text();
+                tw_info.rep_users.push($(ch).attr("data-mentioned-user-id"));
             } else if (ch.className == 'Emoji Emoji--forText') {
                 tw_info.tweet += $(ch).attr("alt");
             } else if (ch.nodeName == '#text'  ||
@@ -83,17 +81,17 @@ class TwitterUtil {
     }
 
     /*!
-     *  @brief  twitter公式reply対象ユーザ名を得る
+     *  @brief  twitter公式reply対象ユーザIDを得る
      *  @param[out] dst 格納先
      *  @param[in]  tw  ツイート全体ノード
      */
-    static get_twitter_official_reply_usernames(dst, tw) {
+    static get_twitter_official_reply_userids(dst, tw) {
         const ar_rep = $(tw).find("div.ReplyingToContextBelowAuthor");
         if (ar_rep.length == 0) {
             return;
         }
-         $(ar_rep[0]).find("span.username.u-dir").each((inx, elem)=> {
-            dst.push($(elem).text().replace('@', ''));
+         $(ar_rep[0]).find("a.pretty-link.js-user-profile-link").each((inx, elem)=> {
+            dst.push($(elem).attr("data-user-id"));
          });
     }
 
@@ -111,10 +109,9 @@ class TwitterUtil {
         }
         ret.empty = false;
         ret.dispname = $(tw_info).attr("data-name");
-        ret.username = $(tw_info).attr("data-screen-name");
         ret.userid   = $(tw_info).attr("data-user-id");
         this.get_tweet(ret, tw, tw_tag);
-        this.get_twitter_official_reply_usernames(ret.rep_usernames, tw);
+        this.get_twitter_official_reply_userids(ret.rep_users, tw);
         return ret;
     }
 
@@ -136,7 +133,7 @@ class TwitterUtil {
         const QT_TWEET_TAG
             = "div.QuoteTweet-text.tweet-text.u-dir";
         this.get_tweet(ret, qttw, QT_TWEET_TAG);
-        this.get_twitter_official_reply_usernames(ret.rep_usernames, qttw);
+        this.get_twitter_official_reply_userids(ret.rep_users, qttw);
         //
         const qt_info = $(qttw).find("div.QuoteTweet-innerContainer");
         if (qt_info.length == 0) {
@@ -177,6 +174,22 @@ class TwitterUtil {
     }
 
     /*!
+     *  @brief  プロフィール画像URLからidを切り出す
+     *  @param  image_url   プロフィール画像URL
+     *  @note   http[s]://pbs.twimg.com/profile_images/$(id)/$(image_file)
+     */
+    static get_id_from_profile_image(image_url) {
+        const img_url_wrapper = new urlWrapper(image_url);
+        if (img_url_wrapper.domain != 'pbs.twimg.com' ||
+            img_url_wrapper.subdir.length != 3 ||
+            img_url_wrapper.subdir[0] != 'profile_images') {
+            return null;
+        } else {
+            return img_url_wrapper.subdir[1];
+        }
+    }
+
+    /*!
      *  @brief  togetterコメントを得る
      *  @param  parent  コメントノード
      *  @note   tweet連携してる場合も多いのでここに置いとく
@@ -189,7 +202,7 @@ class TwitterUtil {
                 const txt = $(ch).text();
                 tw_info.tweet += txt;
                 if (ch.className == "comment_reply") {
-                    tw_info.rep_usernames.push(txt);
+                    tw_info.rep_users.push(txt);
                 } else {
                     const url = new urlWrapper(txt);
                     if (url.domain != '') {
@@ -201,5 +214,16 @@ class TwitterUtil {
             }
         }
         return tw_info;
+    }
+
+    /*!
+     *  @brief  デフォルトアイコンか？
+     *  @param  profile_image_url   プロフィール画像URL
+     */
+    static is_default_icon(profile_image_url) {
+        const wrapper = new urlWrapper(profile_image_url);
+        return  wrapper.domain == 'abs.twimg.com' &&
+                wrapper.subdir.length == 3 &&
+                wrapper.subdir[1] == 'default_profile_images';
     }
 }
