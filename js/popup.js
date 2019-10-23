@@ -671,6 +671,7 @@ class Popup {
             for (const tab of tabs) {
                 const url = new urlWrapper(tab.url);
                 if (url.in_twitter_user_page()  ||
+                    url.in_twitter_list()       ||
                     url.in_twitter_tw_thread()  ||
                     url.in_twitter_search()     ||
                     url.in_togetter_content()   ||

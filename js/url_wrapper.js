@@ -52,7 +52,7 @@ class urlWrapper {
         return this.domain.indexOf("twitter.com") >= 0;
     }
     in_twitter_user_page() {
-        if (!this.in_twitter()|| this.in_twitter_search()) {
+        if (!this.in_twitter() || this.in_twitter_search()) {
             return false;
         }
         if (this.subdir.length == 1) {
@@ -63,6 +63,14 @@ class urlWrapper {
         } else {
             return false;
         }
+    }
+    in_twitter_list() {
+        if (!this.in_twitter() || this.in_twitter_search()) {
+            return false;
+        }
+        return this.subdir.length == 3 &&
+               this.subdir[1] == 'lists' &&
+               this.subdir[2] != '';
     }
     in_twitter_tw_thread() {
         if (!this.in_twitter()|| this.in_twitter_search()) {

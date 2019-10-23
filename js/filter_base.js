@@ -152,6 +152,15 @@ class FilterBase {
     }
 
     /*!
+     *  @brief  togetterユーザフィルタ
+     *  @param  username    ユーザ名
+     *  @retval true    ミュート対象だ
+     */
+    filtering_togetter_user(username) {
+        return this.storage.togetter_userame_mute(username);
+    }
+
+    /*!
      *  @brief  togetterコメントフィルタ
      *  @param  username        ユーザ名
      *  @param  comment         コメント
@@ -159,8 +168,8 @@ class FilterBase {
      *  @retval true    当該コメントはミュート対象だ
      */
     filtering_togetter_comment(username, comment, rep_usernames) {
-        if (this.storage.togetter_userame_mute(username)||
-            this.storage.word_mute(comment)  ||
+        if (this.filtering_togetter_user(username)||
+            this.storage.word_mute(comment) ||
             this.storage.togetter_usernames_mute(rep_usernames)) {
             return true;
         }

@@ -57,6 +57,9 @@ class TwitterFilter extends FilterBase {
                 var short_urls = [];
                 urlWrapper.select_short_url(short_urls, tw_info.link_urls);
                 urlWrapper.select_short_url(short_urls, qt_info.link_urls);
+                if (short_urls.length == 0) {
+                    return;
+                }
                 if (this.short_url_decoder.filter(short_urls,
                                                   super.filtering_word.bind(this))) {
                     $(tw).detach();
@@ -82,8 +85,8 @@ class TwitterFilter extends FilterBase {
         }
     }
 
-    filtering_twitter_related_users() {
-        $("div.RelatedUsers.module").each((inx, mod)=> {
+    filtering_twitter_user_small_list(BASE_TAG) {
+        $(BASE_TAG).each((inx, mod)=> {
             $(mod).find("div.UserSmallListItem.js-account-summary").each((inx, user)=> {
                 const ar_dispname = $(user).find("strong.fullname")
                 if (ar_dispname.length == 0) {
@@ -101,7 +104,7 @@ class TwitterFilter extends FilterBase {
             });
         });
     }
-
+    
     filtering_twitter_option() { 
         const opt = this.storage.json.option;
         if (opt.off_login) {
@@ -248,7 +251,7 @@ class TwitterFilter extends FilterBase {
             const TWEET_TAG
                 = "p.TweetTextSize.TweetTextSize--normal.js-tweet-text.tweet-text";
             this.filtering_twitter_timeline(tl_parent, TWEET_TAG);
-            this.filtering_twitter_related_users();
+            this.filtering_twitter_user_small_list("div.RelatedUsers.module");
             this.filtering_twitter_option();
         } else if (loc.in_twitter_tw_thread()) {
             const tl_parent = $("div#descendants.ThreadedDescendants");
@@ -257,6 +260,13 @@ class TwitterFilter extends FilterBase {
             // ThreadAuthorはミュート除外
             const exclude_userid = this.get_thread_author_userid();
             this.filtering_twitter_timeline(tl_parent, TWEET_TAG, exclude_userid);
+        } else if (loc.in_twitter_list()) {
+            const tl_parent = $("div.stream-container");
+            const TWEET_TAG
+                = "p.TweetTextSize.js-tweet-text.tweet-text";
+            this.filtering_twitter_timeline(tl_parent, TWEET_TAG);
+            this.filtering_twitter_user_small_list("div.flex-module");
+            this.filtering_twitter_option();
         }
     }
 
@@ -280,6 +290,8 @@ class TwitterFilter extends FilterBase {
             tl_parent = $("div#timeline.ProfileTimeline");
         } else if (loc.in_twitter_tw_thread()) {
             tl_parent = $("div#descendants.ThreadedDescendants");
+        } else if (loc.in_twitter_list()) {
+            tl_parent = $("div.stream-container");
         }
         $(tl_parent).find("ol#stream-items-id").each((inx, elem)=> {
             $($(elem).find("li").get().reverse()).each((inx, tw)=> {

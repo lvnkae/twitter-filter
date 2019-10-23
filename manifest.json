@@ -44,7 +44,9 @@
       "19": "img/badge_on.png",
       "48": "img/icon_48.png"
    },
-   "web_accessible_resources": [ "img/danger_48.png" ],
+   "web_accessible_resources": [ "img/danger_48.png",
+                                 "img/danger_64.png",
+                                 "img/danger_128.png" ],
    "manifest_version": 2,
    "name": "Twitterフィルタ",
    "permissions": [ "tabs", "storage", "webRequest",
