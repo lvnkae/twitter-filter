@@ -5,7 +5,7 @@ class TogetterFilter extends FilterBase {
 
     /*!
      *  @brief  twitterプロフィール画像URL取得
-     *  @param  nd_user tweetユーザ情報ノード
+     *  @param  nd_user twitterユーザ情報ノード
      */
     static get_profile_image_url(nd_user) {
         const nd_img = $(nd_user).find("img");
@@ -16,7 +16,7 @@ class TogetterFilter extends FilterBase {
     }
     /*!
      *  @brief  twitterプロフィール画像ID取得
-     *  @param  nd_user tweetユーザ情報ノード
+     *  @param  nd_user twitterユーザ情報ノード
      */
     static get_profile_image_id(nd_user) {
         const img_url = TogetterFilter.get_profile_image_url(nd_user);
@@ -27,47 +27,43 @@ class TogetterFilter extends FilterBase {
     }
 
     /*!
-     *  @brief  サムネイル画像を警告用に差し替える
-     *  @param  thumb   サムネイルノード
+     *  @brief  警告用画像に差し替える
+     *  @param  parent      画像の親ノード
+     *  @param  img_file    警告用アイコン名
      */
-    replace_thumb_image_to_warning(thumb) {
-        const old_img = $(thumb).find("img")
+    static replace_image_for_warning(parent, img_file) {
+        const old_img = $(parent).find("img")
         $(old_img).detach();
-        $(thumb).prepend('<img class="thumb" src="'
-                         + chrome.extension.getURL("img/danger_128.png")
-                         + '" style="border: 2px dashed #880000;">');
-    }
-    /*!
-     *  @brief  twitterプロフィール画像を警告用に差し替える
-     *  @param  user        ユーザノード
-     *  @param  img_file    警告アイコンファイル名
-     */
-    replace_profile_icon_to_warning(user, img_file) {
-        const old_img = $(user).find("img")
-        $(old_img).detach();
-        $(user).prepend('<img class="icon" src="'
-                        + chrome.extension.getURL('img/' + img_file + '.png')
-                        + '" style="border: 2px dashed #880000;">');
+        $(parent).prepend('<img class="icon" src="'
+                          + chrome.extension.getURL('img/' + img_file + '.png')
+                          + '" style="border: 2px dashed #880000;">');
     }
 
     /*!
      *  @brief  まとめユーザをミュートする
-     *  @param  user    Twitterユーザノード
+     *  @param  nd_user twitterユーザ情報ノード
      *  @param  is_prof プロフィールか(true:profile/false:tweet)
      *  @note   まとめが歯抜けになると読みづらいので警告を出すに留める
      */
-    mute_curating_user(user, is_prof) {
+    mute_curating_user(nd_user, is_prof) {
         if (is_prof) {
-            this.replace_profile_icon_to_warning(user, 'danger_64');
+            TogetterFilter.replace_image_for_warning(nd_user, 'danger_64');
         } else {
-            this.replace_profile_icon_to_warning(user, 'danger_48');
+            TogetterFilter.replace_image_for_warning(nd_user, 'danger_48');
         }
-        $(user).attr("muted", "");
+        $(nd_user).attr("muted", "");
     }
 
     /*!
-     *  @brief  まとめ物全てにfuncを実行
-     *  @param  func
+     *  @brief  サムネイル画像を警告用に差し替える
+     *  @param  parent  サムネイル画像の親ノード
+     */
+    replace_thumb_image_to_warning(parent) {
+        TogetterFilter.replace_image_for_warning(parent, 'danger_128');
+    }
+
+    /*!
+     *  @brief  まとめ物(list_box)全てにfuncを実行
      */
     curating_list_box_each(func) {
         $("div.tweet_box").each((inx, tw_box)=> {
@@ -84,7 +80,6 @@ class TogetterFilter extends FilterBase {
 
     /*!
      *  @brief  まとめtweet全てにfuncを実行
-     *  @param  func
      */
     curating_tweets_each(func) {
         $("div.tweet_box").each((inx, tw_box)=> {
@@ -109,6 +104,7 @@ class TogetterFilter extends FilterBase {
     /*!
      *  @brief  まとめlinkフィルタ
      *  @param  l_box   list_boxノード
+     *  @note   tweetでもprofileでもtogetterでもないlist_box用
      */
     filtering_curating_link(l_box) {
         const nd_site_name = $(l_box).find("span.site_name");
@@ -123,7 +119,7 @@ class TogetterFilter extends FilterBase {
         const site_name = TextUtil.remove_blank_line($(nd_site_name).text());
         const site_url = $(nd_link).attr("href");
         if (super.filtering_word(site_name) || super.filtering_word(site_url)) {
-            this.replace_thumb_image_to_warning(nd_thumb);
+            this.replace_thumb_image_to_warning(nd_link);
             $(l_box).attr("muted", "");
         }
         return true;
@@ -173,7 +169,7 @@ class TogetterFilter extends FilterBase {
                 this.tw_profile_image_accessor.entry(username, profile_image_id);
             }
         } else
-        if (is_pprof) {
+        if (is_prof) {
             return true;
         } else {
             if (TwitterUtil.is_default_icon(profile_image_url)) {
@@ -208,6 +204,7 @@ class TogetterFilter extends FilterBase {
                 return this.filtering_curating_user(l_box, true);
             } else 
             if (clsname.indexOf("type_togetter") >= 0) {
+                return true;
             } else {
                 return this.filtering_curating_link(l_box);
             }
@@ -226,7 +223,6 @@ class TogetterFilter extends FilterBase {
 
     /*!
      *  @brief  コメント全てにfuncを実行
-     *  @param  func
      */
     comment_each(func) {
         $("div#comment_box.comment_box").each((inx, elem)=> {
@@ -331,7 +327,7 @@ class TogetterFilter extends FilterBase {
 
     /*!
      *  @brief  短縮URL展開完了通知
-     *  @param  short_url   展開元短縮URL
+     *  @param  short_url   短縮URL
      *  @param  url         展開後URL
      */
     tell_decoded_short_url(short_url, url) {
@@ -444,6 +440,7 @@ class TogetterFilter extends FilterBase {
 
     /*!
      *  @brief  Twiterプロフィール取得通知
+     *  @param  result      取得結果
      *  @param  userid      ユーザID
      *  @param  username    ユーザ名
      *  @param  img_id      プロフィール画像ID
@@ -547,8 +544,8 @@ class TogetterFilter extends FilterBase {
 
     /*!
      *  @brief  Twiterプロフィール画像取得通知
+     *  @param  result      取得結果
      *  @param  image_url   画像URL
-     *  @param  lc_img_id   画像ID(ローカル)
      *  @param  username    ユーザ名
      */
     tell_get_tw_profile_image(result, image_url, username) {
@@ -563,7 +560,7 @@ class TogetterFilter extends FilterBase {
             const local_ids = 
                 this .tw_profile_image_accessor.get_local_id(username);
             if (local_ids == null) {
-                console.log(username);
+                console.log('error:local_ids is null(' + username + ')');
                 return;
             }
             this.request_tw_profile_from_tweet_id(local_ids);
