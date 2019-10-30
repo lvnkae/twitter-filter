@@ -85,6 +85,35 @@ class StorageData {
         }
     }
 
+    /*!
+     *  @brief  ユーザIDミュート設定を追加
+     *  @param  userid      ユーザID
+     *  @param  username    ユーザ名
+     *  @param  words       固有ミュートワード
+     */
+    add_userid_mute(userid, username, words) {
+        var json_obj = {};
+        json_obj.userid = userid;
+        json_obj.username = username;
+        json_obj.words = words;
+        this.json.userid_mute.push(json_obj);
+    }
+    /*!
+     *  @brief  ユーザIDミュート設定を追加(重複チェックあり)
+     *  @param  userid      ユーザID
+     *  @param  username    ユーザ名
+     *  @param  words       固有ミュートワード
+     *  @retval true        storage構成変更があった
+     */
+    add_userid_mute_with_check(userid, username, words) {
+        for (const obj of this.json.userid_mute) {
+            if (obj.userid == userid) {
+                return false;
+            }
+        }
+        this.add_userid_mute(userid, username, words);
+        return true;
+    }
 
     /*!
      *  @brief  ユーザIDでミュート

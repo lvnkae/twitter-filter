@@ -47,6 +47,18 @@ class Content {
                 } else
                 if (request.command == "update-storage") {
                     this.storage.load().then();
+                } else
+                if (request.command == MessageUtil.command_mute_tw_user()) {
+                    const update
+                        = this.storage.add_userid_mute_with_check(request.userid,
+                                                                  request.username,
+                                                                  []);
+                    if (update && request.tab_active) {
+                        this.storage.save();
+                        if (this.storage.json.active) {
+                            this.filter_instance.filtering();
+                        }
+                    }
                 }
                 return true;
             }

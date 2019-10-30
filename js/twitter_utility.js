@@ -226,4 +226,22 @@ class TwitterUtil {
                 wrapper.subdir.length == 3 &&
                 wrapper.subdir[1] == 'default_profile_images';
     }
+
+    /*!
+     *  @brief  任意階の親ノードを得る
+     *  @param  e       基準ノード
+     *  @param  times   何段上か
+     *  @return object-array
+     */
+    static get_parent(e, times) {
+        var ret = e;
+        for (var i = 0; i < times; i++) {
+            ret = $(ret).parent();
+            if (ret.length == 0) {
+                break;
+            }
+        }
+        return ret;
+    }
+
 }

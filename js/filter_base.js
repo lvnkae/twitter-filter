@@ -4,6 +4,17 @@
  */
 class FilterBase {
 
+    initialize() {
+        const loc = this.current_location;
+        if (loc.in_twitter()) {
+            this.contextmenu_controller = new ContextMenuController_Twitter(loc);
+        } else if (loc.in_yahoo_realtime_search_result()) {
+            //this.contextmenu_controller = new ContextMenuController();
+        } else if (loc.in_togetter_content()) {
+            //this.contextmenu_controller = new ContextMenuController();
+        }
+    }
+
     /*!
      *  @param storage  ストレージインスタンス(shared_ptr的なイメージ)
      */
@@ -18,6 +29,8 @@ class FilterBase {
         this.after_domloaded_observer = null;
         this.observer_timer = null;
         this.filtering_timer = null;
+        //
+        this.initialize();
     }
 
     /*!

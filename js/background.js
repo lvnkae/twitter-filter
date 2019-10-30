@@ -9,6 +9,7 @@ class Background {
         this.tweet_accessor = new BGTweetAccessor();
         this.tw_profile_accessor = new BGTwProfileAccessor();
         this.tw_profile_image_accessor = new BGTwProfileImageAccessor();
+        this.contextmenu_controller = new BGContextMenuController();
         //
         this.initialize();
     }
@@ -24,6 +25,7 @@ class Background {
         this.tweet_accessor.entry(tab_id);
         this.tw_profile_accessor.entry(tab_id);
         this.tw_profile_image_accessor.entry(tab_id);
+        this.contextmenu_controller.entry(tab_id);
     }
     
     /*!
@@ -122,7 +124,10 @@ class Background {
                 if (request.command == BGTwProfileImageAccessor.command()) {
                     this.tw_profile_image_accessor.on_message(request);
                 } else
-                if (request.command == "start_content") {
+                if (request.command == MessageUtil.command_update_contextmenu()) {
+                    this.contextmenu_controller.on_message(request);
+                } else
+                if (request.command == MessageUtil.command_start_content()) {
                     this.entry(sender.id, sender.tab.id);
                 }
                 return true;

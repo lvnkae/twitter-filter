@@ -479,7 +479,7 @@ class Popup {
     button_save_click() {
         this.storage.clear();
         if (this.ex_userid_mute_last != '') {
-            this.ex_userid_mute_buffer_to_reflect_current(this.ex_useride_mute_last);
+            this.ex_userid_mute_buffer_to_reflect_current(this.ex_userid_mute_last);
         }
         if (this.ex_dispname_mute_last != '') {
             this.ex_dispname_mute_buffer_to_reflect_current(this.ex_dispname_mute_last);
@@ -496,17 +496,13 @@ class Popup {
                 if (kw != "") {
                     const sp = kw.split('/');
                     const userid = sp[0];
-                    var json_obj = {};
-                    json_obj.userid = userid;
-                    json_obj.username = (sp.length == 2) ?sp[1]: '';
+                    const username = (sp.length == 2) ?sp[1]: '';
+                    var words = [];
                     if (userid in this.ex_userid_mute_buffer) {
-                        json_obj.words = 
-                            TextUtil.split_by_new_line(
-                                this.ex_userid_mute_buffer[userid]);
-                    } else {
-                        json_obj.words = [];
+                        words = TextUtil.split_by_new_line(
+                            this.ex_userid_mute_buffer[userid]);
                     }
-                    this.storage.json.userid_mute.push(json_obj);
+                    this.storage.add_userid_mute(userid, username, words);
                 }
             }
         }
