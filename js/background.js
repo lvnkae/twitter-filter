@@ -26,6 +26,7 @@ class Background {
         this.tw_profile_accessor.entry(tab_id);
         this.tw_profile_image_accessor.entry(tab_id);
         this.contextmenu_controller.entry(tab_id);
+        this.contextmenu_controller.create_menu(extention_id);
     }
     
     /*!

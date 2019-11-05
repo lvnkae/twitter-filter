@@ -103,6 +103,11 @@ class YahooRealtimeSearchFilter extends FilterBase {
                 return true;
             }
             var link_url = [];
+            const userid = $(data).attr("data-user-id");
+            if (userid != null && super.filtering_tw_userid(userid)) {
+                $(data).detach();
+                return true;
+            }
             const dispname = $(refname).text();
             const tweet = this.get_tweet(data, link_url);
             if (super.filtering_tw_dispname(dispname) || super.filtering_word(tweet)) {
@@ -193,10 +198,17 @@ class YahooRealtimeSearchFilter extends FilterBase {
             if (ret.unique_id != middle_id) {
                 return true;
             }
-            if (super.tweet_html_filter(tweet.tweet_html, middle_id)) {
+            const ret2
+                = super.get_tweet_userid_and_filtering_from_html(tweet.tweet_html,
+                                                                 middle_id);
+            if (ret2.result) {
                 $(data).detach();
             } else {
-                $(data).attr("tweet-item-id", tweet.id);
+                // 右クリックメニュy－用に書き込んでおく
+                $(data).attr("data-tweet-id", tweet.id);
+                $(data).attr("data-user-id", ret2.userid);
+                $(data).attr("data-screen-name",
+                             $(data).find("a.nam").text().replace('@', ''));
             }
             return false;
         }); 

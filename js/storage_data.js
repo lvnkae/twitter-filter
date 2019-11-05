@@ -164,6 +164,21 @@ class StorageData {
     }
 
     /*!
+     *  @brief  togetterユーザ名ミュート設定を追加(重複チェックあり)
+     *  @param  username    ユーザ名
+     *  @retval true        storage構成変更があった
+     */
+    add_togetter_username_mute_with_check(username) {
+        for (const tcum of this.json.tg_comment_user_mute) {
+            if (tcum == username) {
+                return false;
+            }
+        }
+        this.json.tg_comment_user_mute.push(username);
+        return true;
+    }
+
+    /*!
      *  @brief  togetterユーザ名でミュート
      *  @param  username    togetterユーザ名
      *  @retval true    除外対象だ
@@ -183,7 +198,7 @@ class StorageData {
         return false;
     }
     /*!
-     *  @brief  togetterユーザ名でミュート
+     *  @brief  togetterユーザ名群でミュート
      *  @param  username    togetterユーザ名
      *  @retval true    除外対象が含まれている
      */

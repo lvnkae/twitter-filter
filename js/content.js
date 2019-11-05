@@ -59,6 +59,18 @@ class Content {
                             this.filter_instance.filtering();
                         }
                     }
+                } else
+                if (request.command == MessageUtil.command_mute_tg_user()) {
+                    const update
+                        = this
+                          .storage
+                          .add_togetter_username_mute_with_check(request.username);
+                    if (update && request.tab_active) {
+                        this.storage.save();
+                        if (this.storage.json.active) {
+                            this.filter_instance.filtering();
+                        }
+                    }
                 }
                 return true;
             }

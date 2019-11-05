@@ -14,6 +14,5 @@ class MessageUtil {
     static command_start_content() { return "start_content"; }
     static command_update_contextmenu() { return "update_contextmenu"; }
     static command_mute_tw_user() { return "mute_twitter_user"; }
-
-    static context_menu_item_id_mute_tw() { return "mute_tw_user_838861"; }
+    static command_mute_tg_user() { return "mute_togetter_user"; }
 }

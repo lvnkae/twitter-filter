@@ -7,11 +7,11 @@ class FilterBase {
     initialize() {
         const loc = this.current_location;
         if (loc.in_twitter()) {
-            this.contextmenu_controller = new ContextMenuController_Twitter(loc);
+            this.contextmenu_controller = new ContextMenuController_Twitter();
         } else if (loc.in_yahoo_realtime_search_result()) {
-            //this.contextmenu_controller = new ContextMenuController();
+            this.contextmenu_controller = new ContextMenuController_YahooRS();
         } else if (loc.in_togetter_content()) {
-            //this.contextmenu_controller = new ContextMenuController();
+            this.contextmenu_controller = new ContextMenuController_Togetter();
         }
     }
 
@@ -50,6 +50,8 @@ class FilterBase {
         return ret;
     }
 
+    add_iframe_onmouse_monitoring() {}
+
     create_after_domloaded_observer(func_is_invalid_records, func_filtering) {    
         this.after_domloaded_observer = new MutationObserver((records)=> {
             if (!this.storage.json.active) {
@@ -70,6 +72,7 @@ class FilterBase {
                 }
                 this.current_location = new urlWrapper(location.href);
                 func_filtering();
+                this.add_iframe_onmouse_monitoring();
             } else {
                 // 短時間の連続追加はまとめて処理したい気持ち
                 if (this.filtering_timer == null) {
@@ -78,6 +81,7 @@ class FilterBase {
                         func_filtering();
                         clearTimeout(this.filtering_timer);
                         this.filtering_timer = null;
+                        this.add_iframe_onmouse_monitoring();
                     }, 200); /* 1/5sec */
                 }
             }
@@ -107,10 +111,13 @@ class FilterBase {
             // intervalTimerで生成を待ってobserver登録する
             this.observer_timer = setInterval(()=> {
                 if (this.ready_element_observer(func_get_observing_node)) {
+                    this.add_iframe_onmouse_monitoring();
                     clearInterval(this.observer_timer);
                     this.observer_timer = null;
                 }
             }, 33); /* 1/30sec */
+        } else {
+            this.add_iframe_onmouse_monitoring();
         }
     }
 
@@ -162,8 +169,35 @@ class FilterBase {
             }
             this.short_url_decoder.entry(short_urls, id);
         }
+        return false;
     }
 
+    /*!
+     *  @brief  html形式のtweet詳細にフィルタをかけ、対象外ならuseridを返す
+     *  @param  tweet_html  twitter.comから得られるtweet詳細jsonのtweet_html
+     *  @param  id          短縮URL展開処理にわたす識別情報
+     *  @note   ミュートされない場合は短縮URL展開要求登録まで行う
+     */
+    get_tweet_userid_and_filtering_from_html(tweet_html, id) {
+        const tw_info = TwitterUtil.get_tweet_info_from_html(tweet_html);
+        if (this.filtering_tweet(tw_info.userid,
+                                 tw_info.dispname,
+                                 tw_info.tweet,
+                                 tw_info.rep_users)) {
+            return {result:true};
+        }
+        var short_urls = [];
+        urlWrapper.select_short_url(short_urls, tw_info.link_urls);
+        if (short_urls.length > 0) {
+            if (this.short_url_decoder.filter(short_urls,
+                                              this.filtering_word.bind(this))) {
+                return {result:true};
+            }
+            this.short_url_decoder.entry(short_urls, id);
+        }
+        return {result:false, userid:tw_info.userid};
+    }
+    
     /*!
      *  @brief  togetterユーザフィルタ
      *  @param  username    ユーザ名

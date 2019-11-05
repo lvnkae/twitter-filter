@@ -17,7 +17,7 @@ class TwitterFilter extends FilterBase {
      *  @param  exclude_userid  ミュート対象外ユーザ名(スレッドの親発言者など)
      *  @retval true    当該tweetがミュート対象だ
      */
-    filtering_tweet(tw_info, exclude_userid) {
+    filtering_tweet_lc(tw_info, exclude_userid) {
         if (tw_info.is_empty()) {
             return false;
         }
@@ -43,13 +43,13 @@ class TwitterFilter extends FilterBase {
                 }
                 // ツイート
                 var tw_info = TwitterUtil.get_tweet_info(tw, tw_tag);
-                if (this.filtering_tweet(tw_info, exclude_userid)) {
+                if (this.filtering_tweet_lc(tw_info, exclude_userid)) {
                     $(tw).detach();
                     return;
                 }
                 // 引用RT
                 var qt_info = TwitterUtil.get_qwote_tweet_info(tw);
-                if (this.filtering_tweet(qt_info, exclude_userid)) {
+                if (this.filtering_tweet_lc(qt_info, exclude_userid)) {
                     $(tw).detach();
                     return;
                 }
@@ -95,6 +95,8 @@ class TwitterFilter extends FilterBase {
                 const userid   = $(user).attr("data-user-id");
                 const dispname = $(ar_dispname[0]).text();
                 if (!super.filtering_tw_account(userid, dispname)) {
+                    // 右クリックメニュー用に書き込んでおく
+                    $(user).attr("data-screen-name", TwitterUtil.get_tw_username(user));
                     return;
                 }
                 // $(user)をdetachすると更新挙動が怪しくなるので内容物だけ消す
@@ -122,6 +124,11 @@ class TwitterFilter extends FilterBase {
                 $(elem).detach();
             });
             
+        }
+        // ログイン誘導DDメニューを消す
+        const signin_dd = $("li.dropdown.js-session");
+        if (signin_dd.length > 0) {
+            signin_dd[0].className = "dropdown js-session";
         }
     }
 
@@ -232,13 +239,28 @@ class TwitterFilter extends FilterBase {
         });
     }
 
+    get_tl_parent() {
+        const loc = this.current_location;
+        if (loc.in_twitter_search()) {
+            return $("div#timeline.content-main.AdaptiveSearchTimeline");
+        } else if (loc.in_twitter_user_page()) {
+            return $("div#timeline.ProfileTimeline");
+        } else if (loc.in_twitter_tw_thread()) {
+            return $("div#descendants.ThreadedDescendants");
+        } else if (loc.in_twitter_list()) {
+            return $("div.stream-container");
+        } else {
+            return {length:0};
+        }
+    }
+
     /*!
      *  @brief  フィルタリング
      */
     filtering() {
         const loc = this.current_location;
+        const tl_parent = this.get_tl_parent();
         if (loc.in_twitter_search()) {
-            const tl_parent = $("div#timeline.content-main.AdaptiveSearchTimeline");
             const TWEET_TAG
                 = "p.TweetTextSize.TweetTextSize.js-tweet-text.tweet-text";
             this.filtering_twitter_user_profile();
@@ -247,21 +269,18 @@ class TwitterFilter extends FilterBase {
             this.filtering_twitter_pict_search();
             this.filtering_twitter_option();
         } else if (loc.in_twitter_user_page()) {
-            const tl_parent = $("div#timeline.ProfileTimeline");
             const TWEET_TAG
                 = "p.TweetTextSize.TweetTextSize--normal.js-tweet-text.tweet-text";
             this.filtering_twitter_timeline(tl_parent, TWEET_TAG);
             this.filtering_twitter_user_small_list("div.RelatedUsers.module");
             this.filtering_twitter_option();
         } else if (loc.in_twitter_tw_thread()) {
-            const tl_parent = $("div#descendants.ThreadedDescendants");
             const TWEET_TAG
                 = "p.TweetTextSize.js-tweet-text.tweet-text";
             // ThreadAuthorはミュート除外
             const exclude_userid = this.get_thread_author_userid();
             this.filtering_twitter_timeline(tl_parent, TWEET_TAG, exclude_userid);
         } else if (loc.in_twitter_list()) {
-            const tl_parent = $("div.stream-container");
             const TWEET_TAG
                 = "p.TweetTextSize.js-tweet-text.tweet-text";
             this.filtering_twitter_timeline(tl_parent, TWEET_TAG);
@@ -392,6 +411,13 @@ class TwitterFilter extends FilterBase {
         this.filtering_tweet_from_tweet_detail(tweet);
     }
 
+
+    /*!
+     *  @brief  子iframeに右クリック監視を追加
+     */
+    add_iframe_onmouse_monitoring() {
+        this.contextmenu_controller.add_iframe_monitoring(this.get_tl_parent());
+    }
 
     get_observing_node(elem) {
         // 上位フレームを起点にすることで、下位フレームの再構成もひっかける

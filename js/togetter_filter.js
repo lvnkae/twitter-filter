@@ -63,6 +63,43 @@ class TogetterFilter extends FilterBase {
     }
 
     /*!
+     *  @brief  tweetユーザノードからユーザ名を得る
+     *  @param  nd_user     tweetユーザノード
+     */
+    static get_username_from_usernode(nd_user) {
+        const nd_username = $(nd_user).find("span.status_name");
+        if (nd_username.length == 0) {
+            return '';
+        }
+        return $(nd_username).text().replace('@', '');
+    }
+
+    /*!
+     *  @brief  list_boxにtwitterユーザ情報を書き込む
+     *  @param  e           基準ノード
+     *  @param  userid      ユーザID
+     *  @param  username    ユーザ名
+     *  @note   右クリックミュート用
+     */
+    static write_tw_userinfo_in_list_box(e, userid, username) {
+        $(e).parents("div.list_box").each((inx, lbox)=> {
+            if (function() {
+                const classlist = lbox.classList;
+                for (var inx = 1; inx < classlist.length; inx++) {
+                    if (classlist[inx] == "type_tweet" ||
+                        classlist[inx] == "type_profile") {
+                        return true;
+                    }
+                }
+                return false;
+            }) {
+                $(lbox).attr("data-user-id", userid);
+                $(lbox).attr("data-screen-name", username);
+            }
+        });
+    }
+
+    /*!
      *  @brief  まとめ物(list_box)全てにfuncを実行
      */
     curating_list_box_each(func) {
@@ -87,14 +124,14 @@ class TogetterFilter extends FilterBase {
                 if (l_box.className.indexOf("type_tweet") < 0) {
                     return true;
                 }
-                const user =  $(l_box).find("a.user_link");
-                if (user.length == 0) {
+                const nd_user =  $(l_box).find("a.user_link");
+                if (nd_user.length == 0) {
                     return true;
                 }
-                if ($(user).attr("muted") != null) {
+                if ($(nd_user).attr("muted") != null) {
                     return true;
                 }
-                if (!func(user, l_box)) {
+                if (!func(nd_user, l_box)) {
                     return false;
                 }
             });
@@ -139,8 +176,7 @@ class TogetterFilter extends FilterBase {
             return true;
         }
         const nd_dispname = $(user).find("strong")
-        const nd_username = $(user).find("span.status_name");
-        if (nd_dispname.length == 0 || nd_username.length == 0) {
+        if (nd_dispname.length == 0) {
             return true;
         }
         const dispname = $(nd_dispname).text();
@@ -148,6 +184,15 @@ class TogetterFilter extends FilterBase {
             this.mute_curating_user(user, is_prof);
             return true;
         }
+        const loged_userid = $(l_box).attr("data-user-id");
+        if (loged_userid != null) {
+            if (super.filtering_tw_userid(loged_userid)) {
+                this.mute_curating_user(user, is_prof);
+            }
+            // userid記録済みなら以降の処理は不要
+            return true;
+        }
+        //
         const profile_image_url = TogetterFilter.get_profile_image_url(user);
         if (profile_image_url == null) {
             return true;
@@ -155,7 +200,7 @@ class TogetterFilter extends FilterBase {
         const profile_image_id
             = TwitterUtil.get_id_from_profile_image(profile_image_url);
         if (profile_image_id != null) {
-            const username = $(nd_username).text().replace('@', '');
+            const username = TogetterFilter.get_username_from_usernode(user);
             if (this.tw_profile_image_accessor.is_connected(username,
                                                             profile_image_id)) {
                 const userid = this.tw_profile_accessor.get_userid(profile_image_id);
@@ -164,7 +209,10 @@ class TogetterFilter extends FilterBase {
                         this.mute_curating_user(user, is_prof);
                         return true;
                     }
-                }
+                    TogetterFilter.write_tw_userinfo_in_list_box(user,
+                                                                 userid,
+                                                                 username);
+                } 
             } else {
                 this.tw_profile_image_accessor.entry(username, profile_image_id);
             }
@@ -218,7 +266,12 @@ class TogetterFilter extends FilterBase {
         if (tw.length == 0) {
             return tw;
         }
-        return $(tw).find("span.emj");
+        for (const chn of tw[0].childNodes) {
+            if (chn.nodeName == 'SPAN') {
+                return $(chn);
+            }
+        }
+        return {length:0};
     }
 
     /*!
@@ -342,8 +395,8 @@ class TogetterFilter extends FilterBase {
      */
     filtering_curating_tweets_by_userid_and_json(tweet) {
         const tw_info = TwitterUtil.get_tweet_info_from_html(tweet.tweet_html);
-        this.curating_tweets_each((user, l_box)=> {
-            const nd_status = $($(user).parent()).find("div.status");
+        this.curating_tweets_each((nd_user, l_box)=> {
+            const nd_status = $($(nd_user).parent()).find("div.status");
             if (nd_status.length == 0) {
                 return true;
             }
@@ -352,7 +405,12 @@ class TogetterFilter extends FilterBase {
                 return true;
             }
             if (super.filtering_tw_userid(tw_info.userid)) {
-                this.mute_curating_user(user, false);
+                this.mute_curating_user(nd_user, false);
+            } else {
+                const username = TogetterFilter.get_username_from_usernode(nd_user);
+                TogetterFilter.write_tw_userinfo_in_list_box(nd_user,
+                                                             tw_info.userid,
+                                                             username);
             }
             return false;
         });
@@ -390,7 +448,7 @@ class TogetterFilter extends FilterBase {
             if (nd_user.length == 0) {
                 return true;
             }
-            if ($(user).attr("muted") != null) {
+            if ($(nd_user).attr("muted") != null) {
                 return true;
             }
             return func(nd_user, is_prof);
@@ -405,16 +463,16 @@ class TogetterFilter extends FilterBase {
         const userid = obj.userid;
         const username = obj.username;
         this.curating_user_each((nd_user, is_prof)=> {
-            const nd_username = $(nd_user).find("span.status_name");
-            if (nd_username.length == 0) {
-                return true;
-            }
-            const un = $(nd_username).text().replace('@', '');
+            const un = TogetterFilter.get_username_from_usernode(nd_user);
             if (un != username) {
                 return true;
             }
             if (super.filtering_tw_userid(userid)) {
                 this.mute_curating_user(nd_user, is_prof);
+            } else {
+                TogetterFilter.write_tw_userinfo_in_list_box(nd_user,
+                                                             userid,
+                                                             username);
             }
             return true;
         });
@@ -434,6 +492,11 @@ class TogetterFilter extends FilterBase {
             }
             if (super.filtering_tw_userid(userid)) {
                 this.mute_curating_user(nd_user, false);
+            } else {
+                const username = TogetterFilter.get_username_from_usernode(nd_user);
+                TogetterFilter.write_tw_userinfo_in_list_box(nd_user,
+                                                             userid,
+                                                             username);
             }
             return true;
         });        
@@ -477,22 +540,23 @@ class TogetterFilter extends FilterBase {
         for (const image_id in local_ids) {
             tweet_id[image_id] = [];
         }
-        this.curating_tweets_each((user, l_box)=> {
+        this.curating_tweets_each((nd_user, l_box)=> {
             if ($(l_box).attr("used-tweet") != null) {
-                return; // このtweetは使用済み
+                return true; // このtweetは使用済み
             }
             const nd_status = $(l_box).find("div.status");
             if (nd_status.length == 0) {
-                return;
+                return true;
             }
-            const profile_image_id = TogetterFilter.get_profile_image_id(user);
+            const profile_image_id = TogetterFilter.get_profile_image_id(nd_user);
             if (profile_image_id == null) {
-                return;
+                return true;
             }
             if (profile_image_id in local_ids) {
                 tweet_id[profile_image_id].push($(nd_status).attr("data-id"));
                 $(l_box).attr("used-tweet", "");
             }
+            return true;
         });
         for (const image_id in tweet_id) {
             MessageUtil.send_message({command:"get_tw_profile",

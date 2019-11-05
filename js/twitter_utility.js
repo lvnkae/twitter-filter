@@ -228,20 +228,21 @@ class TwitterUtil {
     }
 
     /*!
-     *  @brief  任意階の親ノードを得る
+     *  @brief  親ノードにfuncを実行し、選択的にノードを得る
      *  @param  e       基準ノード
-     *  @param  times   何段上か
-     *  @return object-array
+     *  @param  func
+     *  @note   自身も含める
+     *  @note   parentが空になったら打ち切り(空ノードを返す)
      */
-    static get_parent(e, times) {
-        var ret = e;
-        for (var i = 0; i < times; i++) {
-            ret = $(ret).parent();
-            if (ret.length == 0) {
-                break;
+    static parent_each(e, func) {
+        var obj = $(e);
+        while(obj.length > 0) {
+            if (func(obj)) {
+                return obj;
+            } else {
+                obj = $(obj).parent();
             }
         }
-        return ret;
+        return obj;
     }
-
 }

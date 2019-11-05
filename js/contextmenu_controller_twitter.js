@@ -4,72 +4,67 @@
 class ContextMenuController_Twitter extends ContextMenuController {
 
     /*!
-     *  @brief  event:右クリック
-     *  @param  loc     現在location(urlWrapper)
-     *  @param  target  右クリックされたelement
+     *  @brief  tweetユーザノードを得る
+     *  @param  element 起点ノード
      */
-    static event_mouse_right_click(loc, element) {
-        const nodename = element.nodeName;
-        const classname = element.className;
-        var parent_calls = -1;
-        if (loc.in_twitter_search()) {
-            if (nodename == 'B') {
-                if (classname == '') {
-                    const pr = $(element).parent();
-                    if (pr[0].nodeName == 'SPAN' &&
-                        pr[0].className.indexOf('username u-dir') >= 0) {
-                        parent_calls = 5;
-                    }
-                }
-            } else
-            if (nodename == 'DIV') {
-                if (classname == 'stream-item-header' ||
-                    classname == 'stream-item-footer') {
-                    parent_calls = 2;
-                } else
-                if (classname.indexOf('ProfileTweet-actionList') >= 0) {
-                    parent_calls = 3;
-                }
-            } else
-            if (nodename == 'IMG') {
-                if (classname.indexOf('avatar') >= 0) {
-                    parent_calls = 4;
-                }
-            } else
-            if (nodename == 'P') {
-                if (classname.indexOf('TweetTextSize') >= 0) {
-                    parent_calls = 3;
-                }
-            } else
-            if (nodename == 'STRONG') {
-                if (classname.indexOf('fullname show-popup') >= 0) {
-                    parent_calls = 5;
-                }
-            } else {
-            }
-        } else if (loc.in_twitter_user_page()) {
-            //tl_parent = $("div#timeline.ProfileTimeline");
-        } else if (loc.in_twitter_tw_thread()) {
-            //tl_parent = $("div#descendants.ThreadedDescendants");
-        } else if (loc.in_twitter_list()) {
-            //tl_parent = $("div.stream-container");
+    get_tweet_user_node(element) {
+        if (element.classList[0] == "QuoteTweet-link") {
+            // 引用RT例外
+            return $(element)
+                .parents("div.QuoteTweet-container")
+                .find("div.QuoteTweet-innerContainer");
         } else {
-            return;
-        }
-        if (parent_calls < 0) {
-            MessageUtil.send_message({
-                command: MessageUtil.command_update_contextmenu(),
-                item_id: MessageUtil.context_menu_item_id_mute_tw(),
-            });
-        } else {
-            super.on_usermute(element, parent_calls);
+            return super.get_tweet_user_node(element);
         }
     }
 
     /*!
-     *  @param  loc 現在location(urlWrapper)
+     *  @brief  event:右クリック
+     *  @param  loc     現在location(urlWrapper)
+     *  @param  target  右クリックされたelement
      */
-    constructor(loc) {
-        super(loc, ContextMenuController_Twitter.event_mouse_right_click);
+    event_mouse_right_click(loc, element) {
+        if (!loc.in_twitter_search()    &&
+            !loc.in_twitter_user_page() &&
+            !loc.in_twitter_tw_thread() &&
+            !loc.in_twitter_list()) {
+            return;
+        }
+        const nd_user = this.get_tweet_user_node(element);
+        if (nd_user.length == 0) {
+            ContextMenuController.off_original_menu();
+        } else {
+            ContextMenuController.on_usermute(nd_user);
+        }
+    }
+
+    /*!
+     *  @brief  子iframeに右クリック監視を追加
+     *  @note   windowレベルで別DOMなので上からは監視できない
+     */
+    add_iframe_monitoring(parent) {
+        if (parent.length == 0) {
+            return;
+        }
+        $(parent).find("ol#stream-items-id").each((inx, elem)=> {
+            $(elem).find("iframe").each((inx, ifr)=> {
+                this.disable_original_menu(ifr.contentDocument);
+            });
+        });
+        // tweetスレッドの親発言分
+        if (parent[0].classList[0] =="ThreadedDescendants") {
+            $(parent)
+            .parents("div.permalink.light-inline-actions")
+            .find("div.permalink-inner.permalink-tweet-container")
+            .find("iframe").each((inx, ifr)=> {
+                this.disable_original_menu(ifr.contentDocument);
+            });
+        }
+    }
+
+    /*!
+     */
+    constructor() {
+        super();
     }
 }
