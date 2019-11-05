@@ -87,12 +87,14 @@ class urlWrapper {
     in_twitter_search() {
         return this.in_twitter() &&
                this.subdir.length > 0 &&
-               this.subdir[0].search((RegExp("^search\?", ""))) >= 0;
+               (this.subdir[0] == 'hashtag' ||
+                this.subdir[0].search((RegExp("^search\?", ""))) >= 0);
     }
 
 
     is_illegal_tw_username(username) {
-        return username == 'i'; // momentで使用
+        return username == 'i' ||       // momentで使用
+               username == 'hashtag';   // hashtag検索で使用
     }
 
 
