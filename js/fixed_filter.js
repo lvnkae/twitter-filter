@@ -259,6 +259,7 @@ class fixedFilter {
             '1664428124': 0,            // @netgeekPolitics
             '1479247273': 0,            // @netgeekIT2
             '123244725': 0,             // @merumonews          news.merumo.ne.jp
+            '2401366028': 0,            // @sirabee_news        sirabee.com
             '245702130': 0,             // @skincare_univ       skincare-univ.com
             '4916851874': 0,            // @sharenewsjapan      snjpn.net
             '1161186227279654912': 0,   // @sharenewsjapan1
@@ -347,6 +348,7 @@ class fixedFilter {
             'mery.jp',
             'netgeek.biz',
             'news.merumo.ne.jp',
+            'sirabee.com',
             'skincare-univ.com',
             'snjpn.net',
             'welq.jp',

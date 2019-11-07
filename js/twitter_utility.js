@@ -71,6 +71,9 @@ class TwitterUtil {
                 tw_info.tweet += $(ch).text();
             } else if (ch.nodeName == 'A' ||
                        ch.nodeName == 'SPAN') {
+                if (ch.className.endsWith('u-hidden')) {
+                    continue;
+                }
                 tw_info.tweet += $(ch).text();
                 const link = $(ch).attr("data-expanded-url");
                 if (link != null) {
