@@ -11,7 +11,7 @@ class BGMessageSender {
         this.delay_message = [];
         this.my_request = [];
         //
-        this.reply_queue = {full:false, queue:[]};
+        this.reply_queue = {full: false, queue: []};
         this.wait_queue = [];
         this.http_request_timer = null;
     }
@@ -28,15 +28,22 @@ class BGMessageSender {
     /*!
      *  @brief  返信
      *  @param  message     メッセージ
+     *  @param  tab_ids     返信対象タブID群
      *  @param  b_active    アクティブなタブにのみ送るか？
      *  @note   登録されているタブにのみ送信
      */
-    send_reply(message, b_active) {
+    send_reply(message, tab_ids, b_active) {
         chrome.tabs.query({}, (tabs)=> {
             for (const tab of tabs) {
                 if (tab.id in this.connected_tab) {
                     if (b_active && !tab.active) {
                         continue;
+                    }
+                    if (tab_ids) {
+                        if (tab.id in tab_ids) {
+                        } else {
+                            continue;
+                        }
                     }
                     // note
                     // responseを設定するとerror
@@ -82,25 +89,21 @@ class BGMessageSender {
 
 
     /*!
-     *  @brief  queueにkeyを登録する
-     *  @param[dst] queue   登録先
-     *  @param[in]  key     登録キー
-     *  @param[in]  fparam  フリーパラメータ
+     *  @brief  応答待ちキューを得る
+     *  @param  key 登録キー
      */
-    static entry_queue(queue, key, fparam) {
-        if (queue.full) {
-            return false;
-        }
-        const MAX_HTTPREQUEST_PALLAREL = 8;
-        queue.queue[key] = fparam;
-        if (Object.keys(queue.queue).length == MAX_HTTPREQUEST_PALLAREL) {
-            queue.full = true;
-        }
-        return true;
+    get_reply_queue(key) {
+        return this.reply_queue.queue[key];
     }
-
     /*!
-     *  @brief  応答待ちキーから削除
+     *  @brief  応答待ちキューに送信済みマークを入れる
+     *  @param  key 登録キー
+     */
+    mark_reply_queue(key) {
+        return this.reply_queue.queue[key].send = true;
+    }
+    /*!
+     *  @brief  応答待ちキューから削除
      *  @param  key 登録キー
      */
     remove_reply_queue(key) {
@@ -108,47 +111,101 @@ class BGMessageSender {
     }
 
     /*!
+     *  @brief  queue登録用obj生成
+     *  @param  fparam  フリーパラメータ
+     *  @param  tab_id  送信者tab_id(=返信先)
+     */
+    static create_queue_obj(fparam, tab_id) {
+        var q = {tab_ids: []};
+        q.tab_ids[tab_id] = fparam;
+        return q;
+    }
+
+    /*!
+     *  @brief  queueからフリーパラメータを得る
+     *  @param  q       queue登録用obj
+     */
+    static get_queue_freeparam(q) {
+        for (const q_key in q.tab_ids) {
+            return q.tab_ids[q_key];
+        }
+    }
+
+    /*!
+     *  @brief  queueにkeyを登録する
+     *  @param[dst] queue   登録先
+     *  @param[in]  key     登録キー
+     *  @param[in]  q       queue登録用obj
+     *  @retval 登録成功
+     */
+    static entry_queue(queue, key, q) {
+        if (queue.full) {
+            return false;
+        }
+        const MAX_HTTPREQUEST_PALLAREL = 8;
+        queue.queue[key] = q;
+        if (Object.keys(queue.queue).length == MAX_HTTPREQUEST_PALLAREL) {
+            queue.full = true;
+        }
+        return true;
+    }
+
+    /*!
      *  @brief  http_request発行待ちキューに積む
      *  @param  key     登録キー
-     *  @param  fparam  フリーパラメータ
+     *  @param  q       queue登録用obj
      */
-    entry_wait_queue(key, fparam) {
+    entry_wait_queue(key, q) {
         for (var inx = 0; inx < this.wait_queue.length; inx++) {
-            if (BGMessageSender.entry_queue(this.wait_queue[inx], key, fparam)) {
+            if (BGMessageSender.entry_queue(this.wait_queue[inx], key, q)) {
                 return;
             }
         }
-        var obj = {};
-        obj.full = false;
-        obj.queue = [];
-        obj.queue[key] = fparam;
+        var obj = {full: false, queue: []};
+        obj.queue[key] = q;
         this.wait_queue.push(obj);
+    }
+
+    /*!
+     *  @brief  http_request発行待ちキューに詰み直す
+     *  @param  key     登録キー
+     *  @param  q       queue登録用obj
+     *  @note   リトライ用
+     */
+    reentry_wait_queue(key, q) {
+        var cq = {tab_ids: []};
+        cq.tab_ids = Object.create(q.tab_ids);
+        this.entry_wait_queue(key, cq);
     }
 
     /*!
      *  @brief  http_requestを発行して良いか
      *  @param  key     登録キー
      *  @param  fparam  フリーパラメータ
+     *  @param  tab_id  送信者tab_id(=返信先)
      *  @retval true    発行してよし
      */
-    can_http_request(key, fparam) {
+    can_http_request(key, fparam, tab_id) {
         // 既にキューに積まれてるか
-        if (key in this.reply_queue) {
+        if (key in this.reply_queue.queue) {
             // 応答待ちキューに積まれてる
+            this.reply_queue.queue[key].tab_ids[tab_id] = fparam;
             return false;
         }
         for (var queue of this.wait_queue) {
             if (key in queue.queue) {
                 // 発行待ちキューに積まれてる
+                this.queue.queue[key].tab_ids[tab_id] = fparam;
                 return false;
             }
         }
+        const q = BGMessageSender.create_queue_obj(fparam, tab_id);
         // 即時request可？
-        if (BGMessageSender.entry_queue(this.reply_queue, key, fparam)) {
+        if (BGMessageSender.entry_queue(this.reply_queue, key, q)) {
             return true;
         }
         //
-        this.entry_wait_queue(key, fparam);
+        this.entry_wait_queue(key, q);
         return false;
     }
 
@@ -175,9 +232,16 @@ class BGMessageSender {
             this.wait_queue.push(prev_wait_queue[inx]);
         }
         // http_request発射
+        if (this.http_request_timer != null) {
+            return;
+        }
         this.http_request_timer = setTimeout(()=> {
             for (const key in this.reply_queue.queue) {
-                http_request_func(key, this.reply_queue.queue[key]);
+                const q = this.reply_queue.queue[key];
+                if (q.send) {
+                    continue;
+                }
+                http_request_func(key, BGMessageSender.get_queue_freeparam(q));
             }
             clearTimeout(this.http_request_timer);
             this.http_request_timer = null;

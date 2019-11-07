@@ -348,9 +348,6 @@ class TogetterFilter extends FilterBase {
      *  @brief  フィルタリング
      */
     filtering() {
-        if (!this.current_location.in_togetter_content()) {
-            return;
-        }
         this.filtering_curating_items();
         this.filtering_comment();
         this.filtering_favorite_user_icons();
@@ -363,9 +360,6 @@ class TogetterFilter extends FilterBase {
      *  @note   短縮URL展開結果受信処理からの呼び出し用
      */
     filtering_comment_from_id(obj) {
-        if (!this.current_location.in_togetter_content()) {
-            return;
-        }
         if (!super.filtering_word(obj.url)) {
             return;
         }
@@ -422,9 +416,6 @@ class TogetterFilter extends FilterBase {
      *  @param  tweet       tweet詳細(json)
      */
     tell_get_tweet(middle_id, tweet) {
-        if (!this.current_location.in_togetter_content()) {
-            return;
-        }
         this.filtering_curating_tweets_by_userid_and_json(tweet);
     }
     
@@ -513,9 +504,6 @@ class TogetterFilter extends FilterBase {
      *  @note   'tw_id_success' img_idがキー/jsonが取得物
      */
     tell_get_tw_profile(result, userid, username, img_id, json) {
-        if (!this.current_location.in_togetter_content()) {
-            return;
-        }
         if (result == 'success') {
             const func
                 = this.filtering_curating_tweets_by_userid_and_username.bind(this);

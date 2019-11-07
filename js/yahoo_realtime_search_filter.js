@@ -143,9 +143,6 @@ class YahooRealtimeSearchFilter extends FilterBase {
      *  @brief  フィルタリング
      */
     filtering() {
-        if (!this.current_location.in_yahoo_realtime_search_result()) {
-            return;
-        }
         this.filtering_search_result();
     }
 
@@ -176,9 +173,6 @@ class YahooRealtimeSearchFilter extends FilterBase {
      *  @param  url         展開後URL
      */
     tell_decoded_short_url(short_url, url) {
-        if (!this.current_location.in_yahoo_realtime_search_result()) {
-            return;
-        }
         this.short_url_decoder.tell_decoded(short_url, url,
                                             this
                                             .filtering_search_result_from_id
@@ -194,19 +188,15 @@ class YahooRealtimeSearchFilter extends FilterBase {
      */
     filtering_search_result_from_tweet_detail(middle_id, tweet) {
         this.search_result_each((data)=> {
-            const ret = this.get_unique_id_from_tweet_url(data);
-            if (ret.unique_id != middle_id) {
+            if (middle_id != this.get_unique_id_from_tweet_url(data).unique_id) {
                 return true;
             }
-            const ret2
-                = super.get_tweet_userid_and_filtering_from_html(tweet.tweet_html,
-                                                                 middle_id);
-            if (ret2.result) {
+            const ret = super.tweet_html_filter(tweet.tweet_html, middle_id);
+            if (ret.result) {
                 $(data).detach();
             } else {
                 // 右クリックメニュy－用に書き込んでおく
-                $(data).attr("data-tweet-id", tweet.id);
-                $(data).attr("data-user-id", ret2.userid);
+                $(data).attr("data-user-id", ret.userid);
                 $(data).attr("data-screen-name",
                              $(data).find("a.nam").text().replace('@', ''));
             }
@@ -222,9 +212,6 @@ class YahooRealtimeSearchFilter extends FilterBase {
      *  @param  tweet       tweet詳細(未解析JSON)
      */
     tell_get_tweet(middle_id, tweet) {
-        if (!this.current_location.in_yahoo_realtime_search_result()) {
-            return;
-        }
         this.filtering_search_result_from_tweet_detail(middle_id, tweet);
     }
 

@@ -120,10 +120,10 @@ class Background {
                     this.tweet_accessor.on_message(request);
                 } else
                 if (request.command == BGTwProfileAccessor.command()) {
-                    this.tw_profile_accessor.on_message(request);
+                    this.tw_profile_accessor.on_message(request, sender);
                 } else
                 if (request.command == BGTwProfileImageAccessor.command()) {
-                    this.tw_profile_image_accessor.on_message(request);
+                    this.tw_profile_image_accessor.on_message(request, sender);
                 } else
                 if (request.command == MessageUtil.command_update_contextmenu()) {
                     this.contextmenu_controller.on_message(request);

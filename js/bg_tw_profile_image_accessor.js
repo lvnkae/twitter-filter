@@ -22,6 +22,7 @@ class BGTwProfileImageAccessor extends BGMessageSender {
      */
     request_tw_profile_image(username, _fparam) {
         const tw_url = 'https://twitter.com/' + username + '/profile_image?size=normal';
+        this.mark_reply_queue(username);
         fetch(tw_url, {
             method: "HEAD",
             redirect: "manual",
@@ -32,10 +33,13 @@ class BGTwProfileImageAccessor extends BGMessageSender {
         })
         .then(response => {})
         .catch(err => {
+            const q = this.get_reply_queue(username);
             // [error]fetchエラー
             this.send_reply({command: BGTwProfileImageAccessor.command(),
                              result: "fail",
-                             username: username});
+                             username: username}, q.tag_ids);
+            super.update_reply_queue(username,
+                                     this.request_tw_profile_image.bind(this));
         });
     }
 
@@ -55,6 +59,11 @@ class BGTwProfileImageAccessor extends BGMessageSender {
         const responseHeaders = details.responseHeaders;
         const req_url = new urlWrapper(details.url);
         const username = req_url.subdir[0];
+        const q = this.get_reply_queue(username);
+        if (q && q.tab_ids) {
+        } else {
+            console.log("error");
+        }
         //
         const STC_REDIRECT_TO_IMAGE = 302;
         const STC_OVERTIMES_ACCESS = 200;
@@ -66,23 +75,23 @@ class BGTwProfileImageAccessor extends BGMessageSender {
                 // username変更orアカウント削除
                 this.send_reply({command: rep_command,
                                  result: "not_found",
-                                 username: username});
+                                 username: username}, q.tab_ids);
             } else {
                 this.send_reply({command: rep_command,
                                  result: "success",
                                  image_url: profile_image_url,
-                                 username: username});
+                                 username: username}, q.tab_ids);
             }
         } else
         if (details.statusCode == STC_ACCOUNT_SUSPENDED) {
             // アカウント凍結
             this.send_reply({command: rep_command,
                              result: "suspended",
-                             username: username});
+                             username: username}, q.tab_ids);
         } else
         if (details.statusCode == STC_OVERTIMES_ACCESS) {
             // 連続アクセスしすぎ？ → リトライ
-            super.entry_wait_queue(username, null);
+            super.reentry_wait_queue(username, q);
         } else {
             // [error]展開失敗
             console.log(func_name
@@ -107,9 +116,10 @@ class BGTwProfileImageAccessor extends BGMessageSender {
     /*!
      *  @brief  onMessageコールバック
      *  @param  request
+     *  @param  sender  送信者情報
      */
-    on_message(request) {
-        if (!super.can_http_request(request.username, null)) {
+    on_message(request, sender) {
+        if (!super.can_http_request(request.username, null, sender.tab.id)) {
             return;
         }
         this.request_tw_profile_image(request.username);

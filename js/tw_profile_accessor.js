@@ -69,7 +69,6 @@ class TwProfileAccessor {
         const tw_info = TwitterUtil.get_tweet_info_from_html(json.tweet_html);
         var obj = {};
         obj.userid = tw_info.userid;
-        obj.username = tw_info.username; // 最新のusername
         obj.img_id = local_id;
         this.image_id_map[local_id] = obj;
         filter_func(obj);

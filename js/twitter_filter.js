@@ -176,14 +176,25 @@ class TwitterFilter extends FilterBase {
      *  @param  func    実行する関数
      */
     filtering_twitter_news_each(func) {
-        $("div.AdaptiveNewsLargeImageHeadline").each((inx, parent)=> {
-            func(parent);
-        });
-        $("div.AdaptiveNewsRelatedHeadlines-headline").each((inx, parent)=> {
-            if (!func(parent)) {
-                return false;
-            }
-        });
+        const each_func = function(tag) {
+            var b_continue = true;
+            $(tag).each((inx, parent)=> {
+                b_continue = func(parent);
+                if (!b_continue) {
+                    return false;
+                }
+            });
+            return b_continue;
+        };
+        if (!each_func("div.AdaptiveNewsLargeImageHeadline")) {
+            return; 
+        }
+        if (!each_func("div.AdaptiveNewsTextHeadline-body")) {
+            return;
+        }
+        if (!each_func("div.AdaptiveNewsRelatedHeadlines-headline")) {
+            return;
+        }
     }
 
     filtering_twitter_news() {
@@ -376,7 +387,7 @@ class TwitterFilter extends FilterBase {
             if (tweet.id != $(ch).attr("data-item-id")) {
                 return true;
             }
-            if (super.tweet_html_filter(tweet.tweet_html, tweet.id)) {
+            if (super.tweet_html_filter(tweet.tweet_html, tweet.id).result) {
                 $(ch).detach();
             } else {
                 $(ch).attr("has-detail", "");
@@ -391,7 +402,7 @@ class TwitterFilter extends FilterBase {
             if (null == org_tweet_id || tweet.id != org_tweet_id) {
                 return true;
             }
-            if (super.tweet_html_filter(tweet.tweet_html, tweet.id)) {
+            if (super.tweet_html_filter(tweet.tweet_html, tweet.id).result) {
                 $(parent).detach();
             } else {
                 $(parent).attr("has-detail", "");
@@ -404,7 +415,7 @@ class TwitterFilter extends FilterBase {
 
     /*!
      *  @brief  tweet詳細取得完了通知
-     *  @param  middle_id   中間URL識別ID
+     *  @param  middle_id   中間URL識別ID(未使用)
      *  @param  tweet       tweet詳細(json)
      */
     tell_get_tweet(middle_id, tweet) {

@@ -50,8 +50,16 @@ class FilterBase {
         return ret;
     }
 
+    /*!
+     *  @brief  子iframeに右クリック監視を追加
+     */
     add_iframe_onmouse_monitoring() {}
 
+    /*!
+     *  @brief  element追加observer生成
+     *  @param  func_is_invalid_records DOMアイテムチェック関数
+     *  @param  func_filtering          フィルタリング関数
+     */
     create_after_domloaded_observer(func_is_invalid_records, func_filtering) {    
         this.after_domloaded_observer = new MutationObserver((records)=> {
             if (!this.storage.json.active) {
@@ -149,37 +157,10 @@ class FilterBase {
      *  @brief  tweetフィルタ(html形式)
      *  @param  tweet_html  twitter.comから得られるtweet詳細jsonのtweet_html
      *  @param  id          短縮URL展開処理にわたす識別情報
-     *  @retval true    当該tweetはミュート対象だ
      *  @note   ミュートされない場合は短縮URL展開要求登録まで行う
      */
     tweet_html_filter(tweet_html, id) {
         var tw_info = TwitterUtil.get_tweet_info_from_html(tweet_html);
-        if (this.filtering_tweet(tw_info.userid,
-                                 tw_info.dispname,
-                                 tw_info.tweet,
-                                 tw_info.rep_users)) {
-            return true;
-        }
-        var short_urls = [];
-        urlWrapper.select_short_url(short_urls, tw_info.link_urls);
-        if (short_urls.length > 0) {
-            if (this.short_url_decoder.filter(short_urls,
-                                              this.filtering_word.bind(this))) {
-                return true;
-            }
-            this.short_url_decoder.entry(short_urls, id);
-        }
-        return false;
-    }
-
-    /*!
-     *  @brief  html形式のtweet詳細にフィルタをかけ、対象外ならuseridを返す
-     *  @param  tweet_html  twitter.comから得られるtweet詳細jsonのtweet_html
-     *  @param  id          短縮URL展開処理にわたす識別情報
-     *  @note   ミュートされない場合は短縮URL展開要求登録まで行う
-     */
-    get_tweet_userid_and_filtering_from_html(tweet_html, id) {
-        const tw_info = TwitterUtil.get_tweet_info_from_html(tweet_html);
         if (this.filtering_tweet(tw_info.userid,
                                  tw_info.dispname,
                                  tw_info.tweet,
@@ -225,7 +206,6 @@ class FilterBase {
         }
         return this.fixed_filter.filter('', [], comment);
     }
-
 
     /*!
      *  @brief  TwitterユーザIDフィルタ
@@ -276,7 +256,6 @@ class FilterBase {
         return this.fixed_filter.filter('', [], text);
     }
 
-
     /*!
      *  @brief  フィルタリング
      */
@@ -287,11 +266,7 @@ class FilterBase {
         func_filtering();
     }
 
-    /*!
-     *  @brief  tweet詳細取得完了通知
-     *  @note   仮想関数的な感じで
-     */
-    tell_get_tweet(middle_id, tweet) {}
+
     /*!
      *  @brief  Twiterプロフィール取得通知
      *  @note   仮想関数的な感じで

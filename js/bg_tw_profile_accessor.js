@@ -24,6 +24,8 @@ class BGTwProfileAccessor extends BGMessageSender {
      *  @note   usernameをkeyとする
      */
     request_tw_profile(username, image_id) {
+        const func_name = this.request_tw_profile.name;
+        this.mark_reply_queue(username);
         const tw_url = 'https://twitter.com/i/profiles/popup?screen_name=';
         fetch(tw_url + username, {
             method: "GET",
@@ -31,53 +33,71 @@ class BGTwProfileAccessor extends BGMessageSender {
             credentials: "omit",
         })
         .then(response => {
+            const q = this.get_reply_queue(username);
+            if (q && q.tab_ids) {
+            } else {
+                console.log("error");
+            }
             if (response.status == 200) {
                 const content_type = response.headers.get('content-type');
                 if (content_type.indexOf('application/json') >= 0) {
                     return response.json();
                 } else {
                     // error(連続アクセスしすぎ?) → リトライ
-                    super.entry_wait_queue(username, image_id);
-                    super.update_reply_queue(username,
-                                             this.request_tw_profile.bind(this));
+                    super.reentry_wait_queue(username, q);
                 }
             } else
             if (response.status == 404) {
                 // not found → ユーザ名変更またはアカウント削除
-                super.update_reply_queue(username,
-                                         this.request_tw_profile.bind(this));
                 this.send_reply({command: BGTwProfileAccessor.command(),
                                  result: "not_found",
                                  username: username,
-                                 image_id: image_id});
+                                 image_id: image_id}, q.tab_ids);
             } else
-            if (response.status == 0 &&response.type == 'opaqueredirect') {
+            if (response.status == 0 && response.type == 'opaqueredirect') {
                 // redirect → 凍結
-                super.update_reply_queue(username,
-                                         this.request_tw_profile.bind(this));
                 this.send_reply({command: BGTwProfileAccessor.command(),
                                  result: "suspended",
                                  username: username,
-                                 image_id: image_id});
+                                 image_id: image_id}, q.tab_ids);
+            } else {
+                // [error]想定外の挙動
+                console.log(func_name
+                            + '> error:illegal response(username:'
+                            + username
+                            + ',status:'
+                            + response.status
+                            + ').');
+                return;
             }
+            super.update_reply_queue(username,
+                                     this.request_tw_profile.bind(this));
         })
         .then(json => {
             if (json != null) {
-                super.update_reply_queue(username,
-                                         this.request_tw_profile.bind(this));
+                const q = this.get_reply_queue(username);
+                if (q && q.tab_ids) {
+                } else {
+                    console.log("error");
+                }
                 this.send_reply({command: BGTwProfileAccessor.command(),
                                  result: "success",
                                  userid: json.user_id,
                                  username: username,
-                                 image_id: image_id});
+                                 image_id: image_id}, q.tab_ids);
+                super.update_reply_queue(username,
+                                         this.request_tw_profile.bind(this));
             }
         })
         .catch(err => {
+            const q = this.get_reply_queue(username);
             // [error]fetchエラー
             this.send_reply({command: BGTwProfileAccessor.command(),
                              result: "fail",
                              username: username,
-                             image_id: image_id});
+                             image_id: image_id}, q.tab_ids);
+            super.update_reply_queue(username,
+                                     this.request_tw_profile.bind(this));
         });
     }
 
@@ -172,12 +192,13 @@ class BGTwProfileAccessor extends BGMessageSender {
     /*!
      *  @brief  onMessageコールバック
      *  @param  request
+     *  @param  sender  送信者情報
      */
-    on_message(request) {
+    on_message(request, sender) {
         if (request.tweet_id == null) {
             const username = request.username;
             const image_id = request.image_id;
-            if (!super.can_http_request(username, image_id)) {
+            if (!super.can_http_request(username, image_id, sender.tab.id)) {
                 return;
             }
             this.request_tw_profile(username, image_id);
