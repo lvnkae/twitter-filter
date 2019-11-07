@@ -71,14 +71,14 @@ class TwitterUtil {
                 tw_info.tweet += $(ch).text();
             } else if (ch.nodeName == 'A' ||
                        ch.nodeName == 'SPAN') {
+                const link = $(ch).attr("data-expanded-url");
+                if (link != null) {
+                    tw_info.link_urls.push(new urlWrapper(link));
+                } else
                 if (ch.className.endsWith('u-hidden')) {
                     continue;
                 }
                 tw_info.tweet += $(ch).text();
-                const link = $(ch).attr("data-expanded-url");
-                if (link != null) {
-                    tw_info.link_urls.push(new urlWrapper(link));
-                }
             }
         }
     }
