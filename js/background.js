@@ -34,9 +34,9 @@ class Background {
      *  @param  details
      */
     in_monitoring_request(details) {
-        return details.initiator != null    &&
-               this.extention_id != ''      &&
-               details.initiator.indexOf(this.extention_id) >= 0;
+        return details.tabId < 0 &&
+               details.originUrl != null &&
+               details.originUrl.startsWith("moz-extension://");
     }
 
     /*!
@@ -99,19 +99,19 @@ class Background {
             'https://twitter.com/*/profile_image?size=normal'
         ];
         //
-        chrome.webRequest.onHeadersReceived.addListener(
+        browser.webRequest.onHeadersReceived.addListener(
             this.on_headers_received.bind(this),
             {urls: pattern},
             ['responseHeaders']
         );
 
-        chrome.webRequest.onBeforeSendHeaders.addListener(
+        browser.webRequest.onBeforeSendHeaders.addListener(
             this.on_before_send_headers.bind(this),
             {urls: pattern},
             ['requestHeaders']
         );
 
-        chrome.runtime.onMessage.addListener(
+        browser.runtime.onMessage.addListener(
             (request, sender, sendResponse)=> {
                 if (request.command == BGShortUrlDecoder.command()) {
                     this.short_url_decoder.on_message(request);

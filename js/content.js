@@ -5,7 +5,7 @@ class Content {
 
     initialize() {
         // background用Listener
-        chrome.runtime.onMessage.addListener(
+        browser.runtime.onMessage.addListener(
             (request, sender, sendResponce)=> {
                 if (request.command == "decode_short_url") {
                     if (request.result == 'success') {

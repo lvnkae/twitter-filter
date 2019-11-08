@@ -35,7 +35,7 @@ class TogetterFilter extends FilterBase {
         const old_img = $(parent).find("img")
         $(old_img).detach();
         $(parent).prepend('<img class="icon" src="'
-                          + chrome.extension.getURL('img/' + img_file + '.png')
+                          + browser.extension.getURL('img/' + img_file + '.png')
                           + '" style="border: 2px dashed #880000;">');
     }
 

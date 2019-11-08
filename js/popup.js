@@ -663,7 +663,7 @@ class Popup {
      *  @brief  content-scriptへ通知
      */
     send_message_to_relative_tab(message) {
-        chrome.tabs.query({}, (tabs)=> {
+        browser.tabs.query({}, (tabs)=> {
             for (const tab of tabs) {
                 const url = new urlWrapper(tab.url);
                 if (url.in_twitter_user_page()  ||
@@ -672,7 +672,7 @@ class Popup {
                     url.in_twitter_search()     ||
                     url.in_togetter_content()   ||
                     url.in_yahoo_realtime_search_result()) {
-                    chrome.tabs.sendMessage(tab.id, message);
+                    browser.tabs.sendMessage(tab.id, message);
                 }
             }
         });

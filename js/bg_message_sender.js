@@ -33,7 +33,7 @@ class BGMessageSender {
      *  @note   登録されているタブにのみ送信
      */
     send_reply(message, tab_ids, b_active) {
-        chrome.tabs.query({}, (tabs)=> {
+        browser.tabs.query({}, (tabs)=> {
             for (const tab of tabs) {
                 if (tab.id in this.connected_tab) {
                     if (b_active && !tab.active) {
@@ -50,7 +50,7 @@ class BGMessageSender {
                     //   "The message port closed before a response was received."
                     // → 応答不要なのでnullにしておく
                     message.tab_active = tab.active;
-                    chrome.tabs.sendMessage(tab.id, message, null); 
+                    browser.tabs.sendMessage(tab.id, message, null); 
                 }
             }
         });
